@@ -3,11 +3,13 @@
 # CentOS 6 epic Cleaner and Installer
 # By kjohnson@aerisnetwork.com
 # 
-# v2.31 2014-03-11
+# v2.32 2014-03-18
 
 OS1=`cat /etc/redhat-release | awk '{print$1}'`
 OS2=`cat /etc/redhat-release | awk '{print$3}'`
 arch=`uname -p`
+hostname=`hostname`
+URL="http://sky.aerisnetwork.net/build"
 
 
 ######## Option 1 cPanel Startup ########
@@ -65,9 +67,9 @@ long_query_time = 15
 
 ### other stuff ###
 
-wget -q -O /opt/scripts/apache-top.py http://sky.aerisnetwork.net/tools/files/apache/apache-top.py
+wget -q -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py
 
-rm -f /root/cleaner6.sh latest installer.lock
+rm -f /root/centos6.sh latest installer.lock
 
 
 echo -e "\n*****************************************************************\n"
@@ -112,9 +114,9 @@ echo -e "\n*****************************************************************"
 echo -e "Installing packages.."
 echo -e "*****************************************************************\n"
 
-rpm -ivh http://sky.aerisnetwork.net/tools/files/repos/ius-release-1.0-11.ius.centos6.noarch.rpm
-yum install yum-plugin-replace -y 
-yum install db4-utils httpd httpd-devel monit munin munin-node mysql55 mysql55-server php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcached php53u-soap php53u-tidy php53u-xml php53u-xmlrpc vsftpd
+rpm -ivh $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm
+yum install -y -q yum-plugin-replace 
+yum install -y -q db4-utils httpd httpd-devel monit munin munin-node mysql55 mysql55-server php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcached php53u-soap php53u-tidy php53u-xml php53u-xmlrpc vsftpd
 
 echo -e "\n*****************************************************************"
 echo -e "Adding web user, set password and permissions.."
@@ -132,7 +134,7 @@ echo -e "*****************************************************************\n"
 
 ### Apache ###
 mv /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.origin
-wget -q -O /etc/httpd/conf/httpd.conf http://sky.aerisnetwork.net/tools/files/apache/httpd22-nginx-centos6.conf
+wget -q -O /etc/httpd/conf/httpd.conf $URL/config/httpd22-nginx-centos6.conf
 sed -i "s/replaceme/$DOMAIN/g" /etc/httpd/conf/httpd.conf
 
 
@@ -260,7 +262,7 @@ chkconfig --level 2345 mysqld on
 chkconfig --level 2345 monit on
 chkconfig --level 2345 munin-node on
 chkconfig --level 2345 vsftpd on
-cat /dev/null > /root/.bash_history ; history -c
+
 
 
 echo -e "\n*****************************************************************"
@@ -291,10 +293,19 @@ SERVICES="iscsid iscsi smartd kudzu messagebus mcstrans cpuspeed NetworkManager 
 RPMS="systemtap systemtap-runtime eject words alsa-lib python-ldap nfs-utils-lib mkbootdisk sos krb5-workstation pam_krb5 talk cyrus-sasl-plain doxygen gpm dhcdbd NetworkManager yum-updatesd libX11 GConf2 at-spi bluez-gnome bluez-utils cairo cups dogtail frysk gail glib-java gnome-keyring gnome-mount gnome-python2 gnome-python2-bonobo gnome-python2-gconf gnome-python2-gnomevfs gnome-vfs2 gtk2 libXTrap libXaw libXcursor libXevie libXext libXfixes libXfontcache libXft libXi libXinerama libXmu libXpm libXrandr libXrender libXt libXres libXtst libXxf86misc libXxf86vm libbonoboui libgcj libglade2 libgnome libgnomecanvas libgnomeui libnotify libwnck mesa-libGL notification-daemon pango paps pycairo pygtk2 pyspi redhat-lsb startup-notification xorg-x11-server-utils xorg-x11-xauth xorg-x11-xinit libXfont libXau libXdmcp xorg-x11-server-Xvfb ORBit2 firstboot-tui libbonobo pyorbit rhpl desktop-file-utils htmlview pinfo redhat-menus esound ppp wpa_supplicant rp-pppoe ypbind yp-tools oprofile pcmciautils oddjob-libs oddjob gnome-mime-data bluez-libs audiofile aspell aspell-en cpuspeed system-config-securitylevel-tui apmd dhcpv6-client portmap nfs-utils pcsc-lite ccid coolkey ifd-egate pcsc-lite-libs psacct nscd nss_ldap avahi avahi-glib ibmasm rdist conman xinetd samba* php*"
 
 echo -e "\n*****************************************************************"
-echo -e "Disabling SELinux"
+echo -e "Configuring OS (SELinux, timezone)"
 echo -e "*****************************************************************\n"
 
-sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
+rm -f /etc/localtime >/dev/null 2>&1
+unlink /etc/localtime >/dev/null 2>&1
+ln -s /usr/share/zoneinfo/America/Montreal /etc/localtime >/dev/null 2>&1
+echo "Timezone set to Montreal."
+sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config >/dev/null 2>&1
+echo "SELinu disabled. Need to reboot."
+cat /dev/null > /root/.bash_history
+history -c
+echo "History cleared."
+
 
 echo -e "\n*****************************************************************"
 echo -e "Disabling services and stopping default services.."
@@ -310,37 +321,41 @@ done
 /etc/init.d/sendmail stop >/dev/null 2>&1
 /etc/init.d/postfix stop >/dev/null 2>&1 
 /etc/init.d/saslauthd stop >/dev/null 2>&1
+echo "All unused services have been stopped and removed from boot."
 
 echo -e "\n*****************************************************************"
 echo -e "Removing useless rpms.."
-echo -e "Verify the list and type 'y' if it's ok"
 echo -e "*****************************************************************\n"
 
-yum clean all
-yum remove -y $RPMS
-yum remove -y *.i386
+yum clean all -q
+yum remove -y -q $RPMS
+yum remove -y -q *.i386
+echo "Yum cleared. Unused packages and all i386 packages have been removed."
 
 echo -e "\n*****************************************************************"
 echo -e "Updating packages.."
 echo -e "*****************************************************************\n"
 
-yum -y update
+yum -y -q update
+echo "All installed packages have been updated."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing EPEL repo.."
 echo -e "*****************************************************************\n"
 
-yum install -y http://sky.aerisnetwork.net/tools/files/repos/epel-release-6-5.noarch.rpm
+yum install -y -q $URL/repos/epel-release-6-5.noarch.rpm
+echo "EPEL repo installed for usefull packages."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
 echo -e "*****************************************************************\n"
 
-yum install -y gcc gcc-c++ git htop iftop make nethogs openssh-clients perl screen sysbench subversion
+yum install -q -y gcc gcc-c++ git htop iftop make nethogs openssh-clients perl screen sysbench subversion
+echo "Following packages have been installed: gcc gcc-c++ git htop iftop make nethogs openssh-clients perl screen sysbench subversion."
 chmod 775 /var/run/screen
 mkdir -p /opt/scripts
 mkdir -p /opt/src
-
+echo "Directory /opt/scripts and /opt/src created."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing Karl's RSA public key and SSH port 2222.."
@@ -352,6 +367,7 @@ chmod 600 /root/.ssh/authorized_keys
 sed -i "s/\#Port\ 22/Port\ 2222/g" /etc/ssh/sshd_config
 /etc/init.d/auditd stop >/dev/null 2>&1
 /etc/init.d/sshd restart >/dev/null 2>&1
+echo "SSH key installed, port 2222 activated, auditd stopped to make SSH key works."
 
 echo -e "\n*****************************************************************"
 echo -e "Detecting virtualization and IP"
@@ -359,7 +375,7 @@ echo -e "*****************************************************************\n"
 
 ### Virtualization ###
 
-yum install virt-what -y
+yum install -y -q virt-what
 
 VIRT=`virt-what |head -n1`
 
@@ -411,43 +427,46 @@ echo -e "*****************************************************************\n"
 
 if [ "$VIRT" == "openvz" ] || [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
 	echo "vm.swappiness = 0" >> /etc/sysctl.conf
-	echo "Swappiness done.."
-	wget -q -O /opt/scripts/mysqltuner.pl http://sky.aerisnetwork.net/tools/files/mysql/mysqltuner.pl
+	echo "Swappiness done."
+	wget -q -O /opt/scripts/mysqltuner.pl $URL/scripts/mysqltuner.pl
 	chmod +x /opt/scripts/mysqltuner.pl
-	echo "MySQL Tuner script done.."
-	wget -q -O /opt/scripts/backup-mysql.sh http://sky.aerisnetwork.net/tools/files/backup/backup-mysql.sh
+	echo "MySQL Tuner script done."
+	wget -q -O /opt/scripts/backup-mysql.sh $URL/scripts/backup-mysql.sh
 	chmod +x /opt/scripts/backup-mysql.sh
-	echo "MySQL Backup script done.."
+	echo "MySQL Backup script done."
 fi
 
 if [ "$VIRT" == "vmware" ]; then
-	echo "### Installer vmware tools"
+	echo "### Need to install vmware tools"
 fi
 
 
-### Dedicated Server ###
+### Node Server ###
 
 if [ "$VIRT" == "node" ]; then
 	echo "vm.swappiness = 0" >> /etc/sysctl.conf
-	yum install -y ebtables
+	echo "Swappiness done."
+	yum install -y -q ebtables
+	echo "Ebtables installed, need for IP stealing."
 	sed -i "s/\#Port\ 2222/Port\ 25000/g" /etc/ssh/sshd_config
-	/etc/init.d/sshd restart
+	/etc/init.d/sshd restart >/dev/null 2>&1
+	echo "SSH port switched to 25000."
 fi
 
 ### Custom ###
 
 if [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
-	echo -n "\nYou should consider adding the following parameters to grub/fstab: elevator=noop / noatime / nohz=off"
+	echo -n "\nYou should consider adding the following parameters to grub/fstab: elevator=noop / nohz=off / noatime"
 fi
 
 if [ "$VIRT" == "node" ]; then
-	echo -n "\nYou should consider adding the following parameters to grub/fstab: elevator=deadline / noatime / nohz=off"
+	echo -n "\nYou should consider adding the following parameters to grub/fstab: elevator=deadline / nohz=off / noatime"
 fi
 
 
 
 echo -e "\n************************* SUMMARY *******************************"
-echo -e "Server: $uname"
+echo -e "Server: $hostname"
 echo -e "Virtualization: $VIRT"
 echo -e "IP: $IP\n"
 echo -e "CentOS cleaned! What's next?\n"
@@ -462,7 +481,7 @@ read -p "Enter action number : " -e PROCEED_INPUT
 
 case "$PROCEED_INPUT" in
         0)
-		rm -f /root/cleaner6.sh;
+		rm -f /root/centos6.sh;
 		exit 0;
 		;;
 		1)
@@ -483,7 +502,7 @@ esac
 
 echo -e "\n*****************************************************************"
 echo -e "CentOS 6 64bits post-installer by kjohnson@aerisnetwork.com"
-echo -e "for new installation only, hit ctrl-c to cancel."
+echo -e "for NEW installation only, hit ctrl-c to cancel."
 echo -e "*****************************************************************\n"
 
 INT=3
