@@ -302,8 +302,7 @@ ln -s /usr/share/zoneinfo/America/Montreal /etc/localtime >/dev/null 2>&1
 echo "Timezone set to Montreal."
 sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config >/dev/null 2>&1
 echo "SELinu disabled. Need to reboot."
-cat /dev/null > /root/.bash_history
-history -c
+cat /dev/null > /root/.bash_history ## Need a way to fix history -c
 echo "History cleared."
 
 
@@ -328,29 +327,29 @@ echo -e "Removing useless rpms.."
 echo -e "*****************************************************************\n"
 
 yum clean all -q
-yum remove -y -q $RPMS
-yum remove -y -q *.i386
+yum remove -y -q $RPMS >/dev/null 2>&1
+yum remove -y -q *.i386 >/dev/null 2>&1
 echo "Yum cleared. Unused packages and all i386 packages have been removed."
 
 echo -e "\n*****************************************************************"
 echo -e "Updating packages.."
 echo -e "*****************************************************************\n"
 
-yum -y -q update
+yum -y -q update >/dev/null 2>&1
 echo "All installed packages have been updated."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing EPEL repo.."
 echo -e "*****************************************************************\n"
 
-yum install -y -q $URL/repos/epel-release-6-5.noarch.rpm
+yum install -y -q $URL/repos/epel-release-6-5.noarch.rpm >/dev/null 2>&1
 echo "EPEL repo installed for usefull packages."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
 echo -e "*****************************************************************\n"
 
-yum install -q -y gcc gcc-c++ git htop iftop make nethogs openssh-clients perl screen sysbench subversion
+yum install -q -y gcc gcc-c++ git htop iftop make nethogs openssh-clients perl screen sysbench subversion >/dev/null 2>&1
 echo "Following packages have been installed: gcc gcc-c++ git htop iftop make nethogs openssh-clients perl screen sysbench subversion."
 chmod 775 /var/run/screen
 mkdir -p /opt/scripts
@@ -408,7 +407,7 @@ else
 		IP="127.0.0.1"
 fi
 
-read -p "Script has detected that we are running $VIRT on IP address $IP. Is that correct? (Y/n)." -e VIRT_INPUT
+read -p "Script has detected that we are running $VIRT on IP address $IP. Is that correct? (Y/n)" -e VIRT_INPUT
 
 case "$VIRT_INPUT" in
         n)
@@ -448,7 +447,7 @@ if [ "$VIRT" == "node" ]; then
 	echo "Swappiness done."
 	yum install -y -q ebtables
 	echo "Ebtables installed, need for IP stealing."
-	sed -i "s/\#Port\ 2222/Port\ 25000/g" /etc/ssh/sshd_config
+	sed -i "s/\Port\ 2222/Port\ 25000/g" /etc/ssh/sshd_config
 	/etc/init.d/sshd restart >/dev/null 2>&1
 	echo "SSH port switched to 25000."
 fi
@@ -456,11 +455,11 @@ fi
 ### Custom ###
 
 if [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
-	echo -n "\nYou should consider adding the following parameters to grub/fstab: elevator=noop / nohz=off / noatime"
+	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=noop / nohz=off / noatime"
 fi
 
 if [ "$VIRT" == "node" ]; then
-	echo -n "\nYou should consider adding the following parameters to grub/fstab: elevator=deadline / nohz=off / noatime"
+	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=deadline / nohz=off / noatime"
 fi
 
 
