@@ -68,9 +68,10 @@ long_query_time = 15
 ### other stuff ###
 
 wget -q -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py
-
-rm -f /root/centos6.sh latest installer.lock
-
+echo "Downloading apache-top script."
+touch /var/cpanel/optimizefsdisable
+echo "Disabling cPanel optimizefs script while noatime activated."
+rm -f /root/centos6.sh /root/latest /root/installer.lock
 
 echo -e "\n*****************************************************************\n"
 echo -e "cPanel is now installed. You can browse the following link"
@@ -436,7 +437,24 @@ if [ "$VIRT" == "openvz" ] || [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ 
 fi
 
 if [ "$VIRT" == "vmware" ]; then
-	echo "### Need to install vmware tools"
+	
+	#yum install -y -q http://packages.vmware.com/tools/esx/5.0latest/repos/vmware-tools-repo-RHEL6-8.6.12-1.el6.x86_64.rpm
+	#yum install -y -q http://packages.vmware.com/tools/esx/5.1latest/repos/vmware-tools-repo-RHEL6-9.0.10-1.el6.x86_64.rpm
+	#yum install -y -q http://packages.vmware.com/tools/esx/5.5latest/repos/vmware-tools-repo-RHEL6-9.4.5-1.el6.x86_64.rpm
+	#yum install -y -q vmware-tools-esx-nox
+
+fi
+
+
+### Custom guest virtualization rules ###
+
+if [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
+	echo "/usr/sbin/ntpdate -b ca.pool.ntp.org" >> /etc/rc.local
+	echo -e "NTP added."
+	echo "/sbin/ethtool --offload eth0 gso off tso off tx off sg off gro off" >> /etc/rc.local
+	echo "ehtool opmitization to eth0 added."
+	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=noop / nohz=off / noatime"
+
 fi
 
 
@@ -445,21 +463,17 @@ fi
 if [ "$VIRT" == "node" ]; then
 	echo "vm.swappiness = 0" >> /etc/sysctl.conf
 	echo "Swappiness done."
-	yum install -y -q ebtables
+	yum install -y -q ebtables >/dev/null 2>&1
 	echo "Ebtables installed, need for IP stealing."
 	sed -i "s/\Port\ 2222/Port\ 25000/g" /etc/ssh/sshd_config
 	/etc/init.d/sshd restart >/dev/null 2>&1
 	echo "SSH port switched to 25000."
-fi
-
-### Custom ###
-
-if [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
-	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=noop / nohz=off / noatime"
-fi
-
-if [ "$VIRT" == "node" ]; then
-	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=deadline / nohz=off / noatime"
+	echo "/usr/sbin/ntpdate -b ca.pool.ntp.org" >> /etc/rc.local
+	echo -e "NTP added."
+	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=deadline / nohz=off / noatime."
+	echo -e "You should also consider adding the drive/raid optmization in rc.local."
+	echo -e "If the node has a LSI controller, install MegaCli and add megacli/smartX to /etc/profile."
+	echo -e "If the node is a Xen dom0, add ethtool command to /etc/rc.local."
 fi
 
 
@@ -515,9 +529,9 @@ done
 
 if [ "$OS1 ${OS2:0:1}" == "CentOS 6" ] && [ "$arch" == "x86_64" ]
 then
-	echo -e "We are running on CentOS 6 64bits, best OS -.-  we can continue ..\n"
+	echo -e "We are running on CentOS 6 64bits, best OS -.-  we can continue .. \n"
 	cleanup
 else
-	echo -e "Not on CentOS 6 64bits, please reinstall.\n"
+	echo -e "Not on CentOS 6 64bits, please reinstall -.- \n"
 fi
 

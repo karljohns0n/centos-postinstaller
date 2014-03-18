@@ -1,8 +1,13 @@
 ## 2.32 - 2014/03/18 ##
 
-- Redirect output to >/dev/null 2>&1 and use -q for yum
+- Quiest cleanup; redirect output to >/dev/null 2>&1 and use -q for yum
 - Few code optimization
 - More comments during the progress
+- Timezone configuration
+- Ethtool configuration if Xen/KVM/Vmware
+- Add optimizefsdisable for cPanel
+- More additionnal notes if server is node
+- VMware-tools install in progress..
 
 ## 2.31 - 2014/03/12 ##
 
