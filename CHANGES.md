@@ -1,6 +1,11 @@
+## 2.33 - 2014/03/19 ##
+
+- FreePBX integration
+- Minor changes in the code
+
 ## 2.32 - 2014/03/18 ##
 
-- Quiest cleanup; redirect output to >/dev/null 2>&1 and use -q for yum
+- Quiet cleanup; redirect output to >/dev/null 2>&1 and use -q for yum
 - Few code optimization
 - More comments during the progress
 - Timezone configuration

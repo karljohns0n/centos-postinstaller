@@ -5,11 +5,26 @@
 # 
 # v2.32 2014-03-18
 
+######## Global variables ########
+
 OS1=`cat /etc/redhat-release | awk '{print$1}'`
 OS2=`cat /etc/redhat-release | awk '{print$3}'`
 arch=`uname -p`
 hostname=`hostname`
 URL="http://sky.aerisnetwork.net/build"
+
+### IP ###
+
+if [ -f /etc/sysconfig/network-scripts/ifcfg-venet0 ];
+	then
+    	IP=`/sbin/ifconfig venet0:0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+elif [ -f /etc/sysconfig/network-scripts/ifcfg-eth0 ];
+	then
+    	IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+else
+		IP="127.0.0.1"
+fi
+
 
 
 ######## Option 1 cPanel Startup ########
@@ -71,7 +86,7 @@ wget -q -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py
 echo "Downloading apache-top script."
 touch /var/cpanel/optimizefsdisable
 echo "Disabling cPanel optimizefs script while noatime activated."
-rm -f /root/centos6.sh /root/latest /root/installer.lock
+rm -f /root/latest /root/installer.lock
 
 echo -e "\n*****************************************************************\n"
 echo -e "cPanel is now installed. You can browse the following link"
@@ -80,6 +95,7 @@ echo -e "Please check /etc/my.cnf before doing /scripts/restartsrv_mysql ; tail 
 echo -e "\n*****************************************************************\n"
 
 }
+
 
 
 ######## Option 3 LAMP with Nginx Startup ########
@@ -285,6 +301,154 @@ echo -e "\n*****************************************************************\n"
 }
 
 
+
+######## Option 6 FreePBX Startup ########
+
+function freepbx {
+
+
+echo -e "\n*****************************************************************"
+echo -e "FreePBX preparation starting"
+echo -e "*****************************************************************\n"
+
+read -p "Which Panel admin password do you want ? : " -e PANEL_PASS
+read -p "Which MySQL root password do you want ? : " -e MYSQL_PASS
+ARI=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
+
+# Disable epel repo if enabled (/etc/yum.repos.d/epel.repo)
+
+sed -i "s/enabled=1/enabled=0/g" /etc/yum.repos.d/epel.repo >/dev/null 2>&1
+yum clean all -q
+echo -e "\nEPEL repo disabled because it has an old asterisk version. Yum cleaned."
+
+wget --quiet -N -O /opt/src/freepbx-2.11.0.25.tgz http://mirror.freepbx.org/freepbx-2.11.0.25.tgz
+pushd /opt/src >/dev/null 2>&1
+tar -zxf freepbx*.tgz
+rm -f freepbx*.tgz
+echo "FreePBX 2.11 downloaded and uncompressed."
+
+yum install -q -y httpd httpd-devel php php-devel php-process php-common php-pear php-pear-DB php-mysql php-xml php-xmlrpc php-mbstring php-pdo php-cli php-mysql php-gd php-xml php-imap mysql mysql-server libxml2-devel sqlite-devel openssl-devel perl curl sox bison audiofile-devel ncurses-devel dnsmasq >/dev/null 2>&1
+service mysqld restart >/dev/null 2>&1
+sleep 2
+echo "FreePBX dependencies such as Apache/PHP/MySQL are installed."
+
+yum install -y -q http://packages.asterisk.org/centos/6/current/x86_64/RPMS/asterisknow-version-3.0.1-2_centos6.noarch.rpm
+echo "Asterisk 11 repo installed."
+
+/usr/bin/mysqladmin -u root password $MYSQL_PASS
+mysqladmin -u root -p$MYSQL_PASS create asterisk
+mysqladmin -u root -p$MYSQL_PASS create asteriskcdrdb
+echo "MySQl root set to $MYSQL_PASS. Asterisk DBs are created. (asterisk and asteriskcdrdb)"
+
+
+echo -e "\n*****************************************************************"
+echo -e "Web server and Asterisk installation starting"
+echo -e "\n*****************************************************************"
+
+
+yum install -y -q asterisk asterisk-configs asterisk-addons asterisk-ogg asterisk-addons-mysql asterisk-voicemail asterisk-sounds-moh-opsound-wav asterisk-sounds-moh-opsound-ulaw asterisk-sounds-moh-opsound-g722 asterisk-sounds-core-en-ulaw asterisk-sounds-core-en-g722 asterisk-sounds-core-fr-ulaw asterisk-sounds-core-fr-g722 asterisk-sounds-core-fr-gsm asterisk-sounds-extra-en-ulaw asterisk-sounds-extra-en-gsm php-pear-DB --enablerepo=asterisk-11
+echo "Asterisk 11 packages have been installed."
+
+touch /var/log/asterisk/freepbx.log
+chown asterisk:root /var/log/asterisk/freepbx.log
+chmod 664 /var/log/asterisk/freepbx.log
+sed -i "s/TTY=9/#TTY=9/g" /usr/sbin/safe_asterisk
+sed -i "s/post_max_size\ =\ 8M/post_max_size\ =\ 64M/g" /etc/php.ini
+sed -i "s/upload_max_filesize\ =\ 2M/upload_max_filesize\ =\ 64M/g" /etc/php.ini
+sed -i "s/User apache/User asterisk/" /etc/httpd/conf/httpd.conf
+sed -i "s/Group apache/Group asterisk/" /etc/httpd/conf/httpd.conf
+sed -i "s/AllowOverride None/AllowOverride All/" /etc/httpd/conf/httpd.conf
+chgrp asterisk /var/lib/php/session
+htpasswd -b -c /var/www/.panel_htpasswd admin $PANEL_PASS
+echo "
+<Location />
+AuthType Basic
+AuthName \"FreePBX - ACCESS DENIED\"
+AuthUserFile /var/www/.panel_htpasswd
+<Limit GET POST>
+    require valid-user
+</Limit>
+</Location>
+" >> /etc/httpd/conf/httpd.conf
+service httpd restart >/dev/null 2>&1
+pushd /opt/src/freepbx* >/dev/null 2>&1
+echo "Few changes done to Apache/PHP and safe_asterisk binary."
+
+mysql -u root -p$MYSQL_PASS asterisk < SQL/newinstall.sql
+mysql -u root -p$MYSQL_PASS asteriskcdrdb < SQL/cdr_mysql_table.sql
+mysql -u root -p$MYSQL_PASS -e "GRANT ALL PRIVILEGES ON asteriskcdrdb.* TO asteriskuser@localhost IDENTIFIED BY '$MYSQL_PASS';"
+mysql -u root -p$MYSQL_PASS -e "GRANT ALL PRIVILEGES ON asterisk.* TO asteriskuser@localhost IDENTIFIED BY '$MYSQL_PASS';"
+mysql -u root -p$MYSQL_PASS -e "flush privileges;"
+echo -e "FreePBX SQL tables installed.\n\n"
+
+chown -R asterisk:root /var/lib/asterisk
+chmod 775 /var/lib/asterisk
+chown -R asterisk:asterisk /var/www/html
+echo -e "Starting Asterisk, you can ignore errors.\n\n"
+/usr/sbin/safe_asterisk & >/dev/null 2>&1
+sleep 2
+echo -e "\nAsterisk started."
+echo -e "\n*****************************************************************"
+echo -e "FreePBX installation starting"
+echo -e "*****************************************************************"
+echo -e "You will need to enter those information : "
+echo -e "USERNAME to connect to the 'asterisk' database: asteriskuser"
+echo -e "PASSWORD to connect to the 'asterisk' database: $MYSQL_PASS"
+echo -e "HOSTNAME of the 'asterisk' database: localhost"
+echo -e "USERNAME to connect to the Asterisk Manager interface: admin"
+echo -e "PASSWORD to connect to the Asterisk Manager interface: $PANEL_PASS"
+echo -e "PATH to use for your AMP web root: /var/www/html"
+echo -e "IP : $IP"
+echo -e "*****************************************************************\n"
+./install_amp
+amportal chown >/dev/null 2>&1
+sed -i "s/ari_password/$ARI/g" /etc/amportal.conf
+mysql -u root -p$MYSQL_PASS asterisk -e "UPDATE freepbx_settings SET value='$PANEL_PASS' WHERE keyword='AMPMGRPASS';"
+echo "FreePBX installed."
+
+/usr/local/sbin/amportal stop >/dev/null 2>&1
+sleep 2
+/usr/local/sbin/amportal start >/dev/null 2>&1
+echo "Asterisk restarted."
+
+chkconfig mysqld on
+chkconfig httpd on
+echo '/usr/local/sbin/amportal restart'>> /etc/rc.local
+mv /etc/asterisk/confbridge.conf /etc/asterisk/confbridge.conf.origin
+mv /etc/asterisk/cel.conf /etc/asterisk/cel.conf.origin
+mv /etc/asterisk/cel_odbc.conf /etc/asterisk/cel_odbc.conf.origin
+mv /etc/asterisk/logger.conf /etc/asterisk/logger.conf.origin
+mv /etc/asterisk/features.conf /etc/asterisk/features.conf.origin
+mv /etc/asterisk/sip_notify.conf /etc/asterisk/sip_notify.conf.origin
+mv /etc/asterisk/sip.conf /etc/asterisk/sip.conf.origin
+mv /etc/asterisk/iax.conf /etc/asterisk/iax.conf.origin
+mv /etc/asterisk/extensions.conf /etc/asterisk/extensions.conf.origin
+mv /etc/asterisk/ccss.conf /etc/asterisk/ccss.conf.origin
+mv /etc/asterisk/chan_dahdi.conf /etc/asterisk/chan_dahdi.conf.origin
+mv /etc/asterisk/udptl.conf /etc/asterisk/udptl.conf.origin
+mv /etc/asterisk/http.conf /etc/asterisk/http.conf.origin
+/var/lib/asterisk/bin/retrieve_conf >/dev/null 2>&1
+mkdir /var/www/html/admin/modules/_cache
+chown asterisk:asterisk /var/www/html/admin/modules/_cache
+echo "Last asterisk/freepbx configurations done."
+/usr/local/sbin/amportal restart >/dev/null 2>&1
+echo "Asterisk started."
+
+
+echo -e "\n*****************************************************************"
+echo -e "FreePBX & Asterisk installation done!"
+echo -e "*****************************************************************\n"
+asterisk -V
+echo -e "\nYou should now open your browser at : http://$IP/"
+echo -e "Asterisk Manager interface username : admin"
+echo -e "Asterisk Manager interface password : $PANEL_PASS"
+echo -e "\n*****************************************************************\n"
+
+
+}
+
+
+
 ######## OS Cleanup Startup ########
 
 function cleanup {
@@ -396,18 +560,6 @@ else
 		VIRT="node"
 fi
 
-### IP ###
-
-if [ -f /etc/sysconfig/network-scripts/ifcfg-venet0 ];
-	then
-    	IP=`/sbin/ifconfig venet0:0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
-elif [ -f /etc/sysconfig/network-scripts/ifcfg-eth0 ];
-	then
-    	IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
-else
-		IP="127.0.0.1"
-fi
-
 read -p "Script has detected that we are running $VIRT on IP address $IP. Is that correct? (Y/n)" -e VIRT_INPUT
 
 case "$VIRT_INPUT" in
@@ -437,7 +589,8 @@ if [ "$VIRT" == "openvz" ] || [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ 
 fi
 
 if [ "$VIRT" == "vmware" ]; then
-	
+
+    echo "Need to install vmware tools...."	
 	#yum install -y -q http://packages.vmware.com/tools/esx/5.0latest/repos/vmware-tools-repo-RHEL6-8.6.12-1.el6.x86_64.rpm
 	#yum install -y -q http://packages.vmware.com/tools/esx/5.1latest/repos/vmware-tools-repo-RHEL6-9.0.10-1.el6.x86_64.rpm
 	#yum install -y -q http://packages.vmware.com/tools/esx/5.5latest/repos/vmware-tools-repo-RHEL6-9.4.5-1.el6.x86_64.rpm
@@ -478,7 +631,7 @@ fi
 
 
 
-echo -e "\n************************* SUMMARY *******************************"
+echo -e "\n************************* SUMMARY *******************************\n"
 echo -e "Server: $hostname"
 echo -e "Virtualization: $VIRT"
 echo -e "IP: $IP\n"
@@ -489,6 +642,7 @@ echo -e "[2] Proceed with LAMP 53/54/55"
 echo -e "[3] Proceed with LAMP 53/54/55 + Nginx"
 echo -e "[4] Proceed with LNMP 53/54/55 + PHP-FPM"
 echo -e "[5] Proceed with Zimbra"
+echo -e "[6] Proceed with FreePBX"
 echo -e "\n*****************************************************************\n"
 read -p "Enter action number : " -e PROCEED_INPUT
 
@@ -499,6 +653,12 @@ case "$PROCEED_INPUT" in
 		;;
 		1)
 		cpanel;
+		rm -f /root/centos6.sh;
+		exit 0;
+		;;
+		6)
+		freepbx;
+		rm -f /root/centos6.sh;
 		exit 0;
 		;;
 		*)
@@ -529,9 +689,9 @@ done
 
 if [ "$OS1 ${OS2:0:1}" == "CentOS 6" ] && [ "$arch" == "x86_64" ]
 then
-	echo -e "We are running on CentOS 6 64bits, best OS -.-  we can continue .. \n"
+	echo -e "\nWe are running on CentOS 6 64bits, best OS -.-  we can continue .. \n"
 	cleanup
 else
-	echo -e "Not on CentOS 6 64bits, please reinstall -.- \n"
+	echo -e "\nNot on CentOS 6 64bits, please reinstall -.- \n"
 fi
 
