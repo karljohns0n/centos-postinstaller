@@ -1,3 +1,8 @@
+## 2.33 - 2014/04/04 ##
+
+- MariaDB integration for LAMP
+- Send email report after cleanup to kj@aeris.pro
+
 ## 2.33 - 2014/03/19 ##
 
 - FreePBX integration
