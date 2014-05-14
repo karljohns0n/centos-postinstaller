@@ -34,8 +34,11 @@ function cpanel {
 ### cpanel installation ###
 
 pushd /root
-wget -N http://layer1.cpanel.net/latest -q
-sh latest
+wget -N http://layer1.cpanel.net/latest 3>&1 4>&2 >>/tmp/build.log 2>&1
+echo "Installing cPanel.. this will take about 20 minutes.."
+sh latest 3>&1 4>&2 >>/tmp/build.log 2>&1
+chmod 777 /var/run/screen
+echo "cPanel has been installed."
 
 ### alias ###
 
@@ -45,6 +48,7 @@ alias apachelogs=\"tail -f /usr/local/apache/logs/error_log\"
 alias eximlogs=\"tail -f /var/log/exim_mainlog\"
 alias htop=\"htop -C\"
 " >> /etc/profile
+echo "Custom alias have been installed."
 
 ### basic mysql config ###
 
@@ -61,7 +65,7 @@ bind-address = 127.0.0.1
 query-cache-type = 1
 query-cache-size = 32M
 query_cache_limit = 4M
-table_cache = 1000
+table_cache = 1000  ### replace table_open_cache= if MySQL 5.6
 open_files_limit = 2000
 max_connections = 100
 thread_cache_size = 2
@@ -79,14 +83,16 @@ slow_query_log = 1
 slow_query_log_file = /var/log/mysqld-slow.log
 long_query_time = 15
 " > /etc/my.cnf
+echo "MySQL has been optimized."
 
 ### other stuff ###
 
-wget -q -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py
-echo "Downloading apache-top script."
+wget -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py 3>&1 4>&2 >>/tmp/build.log 2>&1
+chmod +x /opt/scripts/apache-top.py
+echo "Downloading useful scripts..."
 touch /var/cpanel/optimizefsdisable
 echo "Disabling cPanel optimizefs script while noatime activated."
-rm -f /root/latest /root/installer.lock
+rm -f /root/latest /root/installer.lock /root/php.ini.new /root/php.ini.orig
 
 echo -e "\n*****************************************************************\n"
 echo -e "cPanel is now installed. You can browse the following link"
@@ -562,6 +568,9 @@ function notify {
 		rm -f /root/centos6.sh
 		echo "A new server has been built. Here's the debug log attached." | mutt -a "/tmp/build.log" -s "New server builded: $hostname" -- kj@aeris.pro
 		rm -f /tmp/build.log
+		rm -f /root/sent
+		cat /dev/null > /root/.bash_history
+		echo -e "\nAn email of the build as been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
 }
 
 ################################################################################################
@@ -583,8 +592,6 @@ ln -s /usr/share/zoneinfo/America/Montreal /etc/localtime >/dev/null 2>&1
 echo "Timezone set to Montreal."
 sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config >/dev/null 2>&1
 echo "SELinux disabled. Need to reboot."
-cat /dev/null > /root/.bash_history ## Need a way to fix history -c
-echo "History cleared."
 
 
 echo -e "\n*****************************************************************"
@@ -609,6 +616,7 @@ echo -e "*****************************************************************\n"
 yum clean all 3>&1 4>&2 >>/tmp/build.log 2>&1
 yum remove -y $RPMS 3>&1 4>&2 >>/tmp/build.log 2>&1
 yum remove -y *.i386 3>&1 4>&2 >>/tmp/build.log 2>&1
+rm -f /root/anaconda-ks.cfg  /root/install.log  /root/install.log.syslog 3>&1 4>&2 >>/tmp/build.log 2>&1
 echo "Yum cleared. Unused packages and all i386 packages have been removed."
 
 echo -e "\n*****************************************************************"
@@ -629,8 +637,8 @@ echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
 echo -e "*****************************************************************\n"
 
-yum install -y bind-utils gcc gcc-c++ git htop iftop make mutt nethogs openssh-clients perl screen sysbench subversion 3>&1 4>&2 >>/tmp/build.log 2>&1
-echo "Following packages have been installed: gcc gcc-c++ git htop iftop make nethogs openssh-clients perl screen sysbench subversion."
+yum install -y bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nethogs openssh-clients pbzip2 perl pigz pv screen sysbench 3>&1 4>&2 >>/tmp/build.log 2>&1
+echo "All packages have been installed."
 chmod 775 /var/run/screen
 mkdir -p /opt/scripts
 mkdir -p /opt/src
@@ -645,6 +653,7 @@ echo $sshkey > /root/.ssh/authorized_keys
 chmod 600 /root/.ssh/authorized_keys
 sed -i "s/\#Port\ 22/Port\ 2222/g" /etc/ssh/sshd_config
 /etc/init.d/auditd stop >/dev/null 2>&1
+restorecon /root/.ssh/authorized_keys
 /etc/init.d/sshd restart >/dev/null 2>&1
 echo "SSH keys installed, port 2222 activated, auditd stopped to make SSH key works."
 
@@ -658,16 +667,16 @@ yum install -y virt-what 3>&1 4>&2 >>/tmp/build.log 2>&1
 
 VIRT=`virt-what |head -n1`
 
-if [ $VIRT == "xen" ];
+if [ "$VIRT" == "xen" ];
 	then
     	echo -e "We seem to be on a Xen domU. Checking IP..\n"
-elif [ $VIRT == "openvz" ];
+elif [ "$VIRT" == "openvz" ];
 	then
     	echo -e "We seem to be on an OpenVZ container. Checking IP..\n"
-elif [ $VIRT == "kvm" ];
+elif [ "$VIRT" == "kvm" ];
 	then
 	    echo -e "We seem to be on KVM. Checking IP..\n"
-elif [ $VIRT == "vmware" ];
+elif [ "$VIRT" == "vmware" ];
 	then
 	    echo -e "We seem to be on VMware. Checking IP..\n"
 else
@@ -693,7 +702,7 @@ echo -e "*****************************************************************\n"
 ### Guest Server ###
 
 if [ "$VIRT" == "openvz" ] || [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
-	echo "vm.swappiness = 0" >> /etc/sysctl.conf
+	echo "vm.swappiness = 1" >> /etc/sysctl.conf
 	echo "Swappiness done."
 	wget -O /opt/scripts/mysqltuner.pl $URL/scripts/mysqltuner.pl 3>&1 4>&2 >>/tmp/build.log 2>&1
 	chmod +x /opt/scripts/mysqltuner.pl
@@ -729,8 +738,10 @@ fi
 ### Node Server ###
 
 if [ "$VIRT" == "node" ]; then
-	echo "vm.swappiness = 0" >> /etc/sysctl.conf
-	echo "Swappiness done."
+	echo "vm.swappiness = 1" >> /etc/sysctl.conf
+	echo -e "Swappiness done."
+	echo "Installing few packages for node.."
+	yum install -y kpartx lm_sensors ipmitool 3>&1 4>&2 >>/tmp/build.log 2>&1
 	yum install -y ebtables 3>&1 4>&2 >>/tmp/build.log 2>&1
 	echo "Ebtables installed, need for IP stealing."
 	sed -i "s/\Port\ 2222/Port\ 25000/g" /etc/ssh/sshd_config
