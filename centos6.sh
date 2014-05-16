@@ -7,10 +7,6 @@
 
 ######## Global variables ########
 
-OS1=`cat /etc/redhat-release | awk '{print$1}'`
-OS2=`cat /etc/redhat-release | awk '{print$3}'`
-arch=`uname -p`
-hostname=`hostname`
 URL="http://sky.aerisnetwork.net/build"
 
 ### IP ###
@@ -566,7 +562,7 @@ echo -e "\n*****************************************************************\n"
 function notify {
 
 		rm -f /root/centos6.sh
-		echo "A new server has been built. Here's the debug log attached." | mutt -a "/tmp/build.log" -s "New server builded: $hostname" -- kj@aeris.pro
+		echo -e "A new server has been built. Here's the debug log attached." | mutt -a "/tmp/build.log" -s "New server builded: `hostname`" -- kj@aeris.pro
 		rm -f /tmp/build.log
 		rm -f /root/sent
 		cat /dev/null > /root/.bash_history
@@ -607,6 +603,7 @@ done
 /etc/init.d/xinetd stop 3>&1 4>&2 >>/tmp/build.log 2>&1
 /etc/init.d/saslauthd stop 3>&1 4>&2 >>/tmp/build.log 2>&1
 /etc/init.d/iptables stop 3>&1 4>&2 >>/tmp/build.log 2>&1
+/etc/init.d/sendmail stop 3>&1 4>&2 >>/tmp/build.log 2>&1
 echo "All unused services have been stopped and removed from boot."
 
 echo -e "\n*****************************************************************"
@@ -637,8 +634,11 @@ echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
 echo -e "*****************************************************************\n"
 
-yum install -y bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nethogs openssh-clients pbzip2 perl pigz pv screen sysbench 3>&1 4>&2 >>/tmp/build.log 2>&1
-echo "All packages have been installed."
+yum install -y bc bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nethogs openssh-clients pbzip2 perl pigz postfix pv screen sysbench 3>&1 4>&2 >>/tmp/build.log 2>&1
+yum remove -y sendmail 3>&1 4>&2 >>/tmp/build.log 2>&1
+/etc/init.d/postfix start 3>&1 4>&2 >>/tmp/build.log 2>&1
+chkconfig postfix on
+echo "All packages have been installed. Sendmail switched for postfix."
 chmod 775 /var/run/screen
 mkdir -p /opt/scripts
 mkdir -p /opt/src
@@ -658,7 +658,25 @@ restorecon /root/.ssh/authorized_keys
 echo "SSH keys installed, port 2222 activated, auditd stopped to make SSH key works."
 
 echo -e "\n*****************************************************************"
-echo -e "Detecting virtualization and IP"
+echo -e "Benchmarking.."
+echo -e "*****************************************************************\n"
+
+echo -e "Benchmarking / partition with dd.."
+DD=`dd bs=1M count=512 \if=/dev/zero of=/root/benchtestfile conv=fdatasync|& awk '/copied/ {print $8 " "  $9}'`
+rm -f /root/benchtestfile
+echo -e "Writing speed on / partition is: $DD\n"
+
+echo -e "Benchmarking CPU with 400 request at 20000 max prime.."
+syscpu=`sysbench --test=cpu --cpu-max-prime=20000 --max-requests=400 run|grep approx| awk '{print $4}'`
+echo -e "Average CPU time per-request : $syscpu\n"
+
+echo -e "Benchmarking network with 10mbps file on Cachefly.."
+echo -e "Speed is \c"
+echo "scale=2; `curl --silent -w "%{speed_download}" -o /dev/null "http://cachefly.cachefly.net/10mb.test"` / 131072" | bc | xargs -I {} echo {}Mb\/s
+
+
+echo -e "\n*****************************************************************"
+echo -e "Detecting virtualization and IP.."
 echo -e "*****************************************************************\n"
 
 ### Virtualization ###
@@ -758,7 +776,7 @@ fi
 
 
 echo -e "\n************************* SUMMARY *******************************\n"
-echo -e "Server: $hostname"
+echo -e "Server: `hostname`"
 echo -e "Virtualization: $VIRT"
 echo -e "IP: $IP\n"
 echo -e "CentOS cleaned! What's next?\n"
@@ -793,6 +811,7 @@ case "$PROCEED_INPUT" in
 		exit 0;
 		;;
 		*)
+	    notify;
         exit 0;
         ;;
 esac
@@ -816,8 +835,7 @@ do
         INT=$((INT-1))
 done
 
-
-if [ "$OS1 ${OS2:0:1}" == "CentOS 6" ] && [ "$arch" == "x86_64" ]
+if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == "CentOS 6" ]] && [[ `uname -p` == "x86_64" ]]
 then
 	echo -e "\nWe are running on CentOS 6 64bits, best OS -.-  we can continue .. \n"
 	cleanup

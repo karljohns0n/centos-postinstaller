@@ -7,6 +7,10 @@
 #
 # Version 1.1
 #
+# You should add a cron for this, exemple:
+# 0 3 * * * /opt/scripts/backup-mysql.sh > /dev/null 2>&1
+#
+#
 
 ### System Setup ###
 
