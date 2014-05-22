@@ -8,6 +8,7 @@
 ######## Global variables ########
 
 URL="http://sky.aerisnetwork.net/build"
+BUILDLOG="/tmp/build.log"
 
 ### IP ###
 
@@ -30,9 +31,9 @@ function cpanel {
 ### cpanel installation ###
 
 pushd /root
-wget -N http://layer1.cpanel.net/latest 3>&1 4>&2 >>/tmp/build.log 2>&1
+wget -N http://layer1.cpanel.net/latest 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Installing cPanel.. this will take about 20 minutes.."
-sh latest 3>&1 4>&2 >>/tmp/build.log 2>&1
+sh latest 3>&1 4>&2 >>$BUILDLOG 2>&1
 chmod 777 /var/run/screen
 echo "cPanel has been installed."
 
@@ -83,7 +84,7 @@ echo "MySQL has been optimized."
 
 ### other stuff ###
 
-wget -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py 3>&1 4>&2 >>/tmp/build.log 2>&1
+wget -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py 3>&1 4>&2 >>$BUILDLOG 2>&1
 chmod +x /opt/scripts/apache-top.py
 echo "Downloading useful scripts..."
 touch /var/cpanel/optimizefsdisable
@@ -150,15 +151,15 @@ echo -e "*****************************************************************\n"
 
 ## Notes: No ionCube module in PHP 5.5 repo as of 2014/03/28
 
-yum install -y db4-utils httpd httpd-devel monit munin munin-node vsftpd 3>&1 4>&2 >>/tmp/build.log 2>&1
+yum install -y db4-utils httpd httpd-devel monit munin munin-node vsftpd 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo -e "Default packages installed."
 
 if [ $PHPVERSION == "53" ];
 	then
-		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>/tmp/build.log 2>&1
+		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 		echo -e "IUScommunity repo installed."
-		yum install -y yum-plugin-replace 3>&1 4>&2 >>/tmp/build.log 2>&1
-		yum install -y php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcache php53u-soap php53u-tidy php53u-xml php53u-xmlrpc 3>&1 4>&2 >>/tmp/build.log 2>&1
+		yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
+		yum install -y php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcache php53u-soap php53u-tidy php53u-xml php53u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
 		echo -e "Latest PHP 5.3 has been installed."
 		if [[ "$MariaDB" == true ]]; then
 			echo "[mariadb]
@@ -167,20 +168,20 @@ baseurl = http://yum.mariadb.org/10.0/centos6-amd64
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
 			echo -e "MariaDB repo installed."
-			yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>/tmp/build.log 2>&1
+			yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
 			echo -e "Latest MariaDB 10 has been installed."
 		else
-			yum install -y mysql 3>&1 4>&2 >>/tmp/build.log 2>&1
-	    	yum replace -y mysql --replace-with mysql55 3>&1 4>&2 >>/tmp/build.log 2>&1
-	    	yum install -y mysql55-server 3>&1 4>&2 >>/tmp/build.log 2>&1
+			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
+	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
+	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	echo -e "Latest MySQL 5.5 have been installed."
 		fi   	
 elif [ $PHPVERSION == "54" ];
 	then
-		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>/tmp/build.log 2>&1
+		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 		echo -e "IUScommunity repo installed."
-		yum install -y yum-plugin-replace 3>&1 4>&2 >>/tmp/build.log 2>&1
-		yum install -y php54 php54-cli php54-common php54-devel php54-enchant php54-gd php54-imap php54-ioncube-loader php54-mbstring php54-mcrypt php54-mysql php54-pdo php54-pear php54-pecl-memcache php54-soap php54-tidy php54-xml php54-xmlrpc 3>&1 4>&2 >>/tmp/build.log 2>&1
+		yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
+		yum install -y php54 php54-cli php54-common php54-devel php54-enchant php54-gd php54-imap php54-ioncube-loader php54-mbstring php54-mcrypt php54-mysql php54-pdo php54-pear php54-pecl-memcache php54-soap php54-tidy php54-xml php54-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
 		echo -e "Latest PHP 5.4 has been installed."
 		if [[ "$MariaDB" == true ]]; then
 			echo "[mariadb]
@@ -189,20 +190,20 @@ baseurl = http://yum.mariadb.org/10.0/centos6-amd64
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
 			echo -e "MariaDB repo installed."
-			yum install -y -q MariaDB-server MariaDB-client 3>&1 4>&2 >>/tmp/build.log 2>&1
+			yum install -y -q MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
 			echo -e "Latest MariaDB 10 has been installed."
 		else
-			yum install -y mysql 3>&1 4>&2 >>/tmp/build.log 2>&1
-	    	yum replace -y mysql --replace-with mysql55 3>&1 4>&2 >>/tmp/build.log 2>&1
-	    	yum install -y mysql55-server 3>&1 4>&2 >>/tmp/build.log 2>&1
+			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
+	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
+	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	echo -e "Latest MySQL 5.5 have been installed."
 		fi 
 elif [ $PHPVERSION == "55" ];
 	then
-		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>/tmp/build.log 2>&1
+		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 		echo -e "IUScommunity repo installed."
-		yum install -y yum-plugin-replace 3>&1 4>&2 >>/tmp/build.log 2>&1
-		yum install -y php55u php55u-cli php55u-common php55u-devel php55u-enchant php55u-gd php55u-imap php55u-ioncube-loader php55u-mbstring php55u-mcrypt php55u-mysql php55u-pdo php55u-pear php55u-pecl-memcache php55u-soap php55u-tidy php55u-xml php55u-xmlrpc 3>&1 4>&2 >>/tmp/build.log 2>&1
+		yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
+		yum install -y php55u php55u-cli php55u-common php55u-devel php55u-enchant php55u-gd php55u-imap php55u-ioncube-loader php55u-mbstring php55u-mcrypt php55u-mysql php55u-pdo php55u-pear php55u-pecl-memcache php55u-soap php55u-tidy php55u-xml php55u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    echo -e "Latest PHP 5.5 has been installed. Keep in mind that PHP 5.5 doesn't support ionCube yet."
 		if [[ "$MariaDB" == true ]]; then
 			echo "[mariadb]
@@ -211,17 +212,17 @@ baseurl = http://yum.mariadb.org/10.0/centos6-amd64
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
 			echo -e "MariaDB repo installed."
-			yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>/tmp/build.log 2>&1
+			yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
 			echo -e "Latest MariaDB 10 have been installed."
 		else
-			yum install -y mysql 3>&1 4>&2 >>/tmp/build.log 2>&1
-	    	yum replace -y mysql --replace-with mysql55 3>&1 4>&2 >>/tmp/build.log 2>&1
-	    	yum install -y mysql55-server 3>&1 4>&2 >>/tmp/build.log 2>&1
+			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
+	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
+	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	echo -e "Latest MySQL 5.5 has been installed."
 		fi 
 	    
 else
-		yum install -y mysql mysql-server php php-cli php-common php-devel php-enchant php-gd php-imap php-ioncube-loader php-mbstring php-mcrypt php-mysql php-pdo php-pear php-pecl-memcache php-soap php-tidy php-xml php-xmlrpc 3>&1 4>&2 >>/tmp/build.log 2>&1
+		yum install -y mysql mysql-server php php-cli php-common php-devel php-enchant php-gd php-imap php-ioncube-loader php-mbstring php-mcrypt php-mysql php-pdo php-pear php-pecl-memcache php-soap php-tidy php-xml php-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
 		echo -e "Built-in PHP and MySQL installed."
 fi
 
@@ -230,7 +231,7 @@ echo -e "\n*****************************************************************"
 echo -e "Adding Web user, set password and permissions.."
 echo -e "*****************************************************************\n"
 
-adduser www 3>&1 4>&2 >>/tmp/build.log 2>&1
+adduser www 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo $WWWPASS | passwd www --stdin
 chown -R www:www /home/www
 chmod 755 /home/www
@@ -243,23 +244,23 @@ echo -e "*****************************************************************\n"
 
 ### Apache ###
 mv /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.origin
-wget -O /etc/httpd/conf/httpd.conf $URL/config/httpd22-centos6.conf 3>&1 4>&2 >>/tmp/build.log 2>&1
+wget -O /etc/httpd/conf/httpd.conf $URL/config/httpd22-centos6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
 sed -i "s/replaceme/$DOMAIN/g" /etc/httpd/conf/httpd.conf
 echo -e "Apache configured on port 80 for $DOMAIN."
 
 
 ### MySQL ###
 if [[ "$MariaDB" == true ]]; then
-	/etc/init.d/mysql start 3>&1 4>&2 >>/tmp/build.log 2>&1
+	/etc/init.d/mysql start 3>&1 4>&2 >>$BUILDLOG 2>&1
 	echo "Giving 3s to start MariaDB..."
 else
-	/etc/init.d/mysqld start 3>&1 4>&2 >>/tmp/build.log 2>&1
+	/etc/init.d/mysqld start 3>&1 4>&2 >>$BUILDLOG 2>&1
 	echo "Giving 3s to start MySQL..."
 fi
 sleep 3
-/usr/bin/mysqladmin -u root password $SQLPASS 3>&1 4>&2 >>/tmp/build.log 2>&1
+/usr/bin/mysqladmin -u root password $SQLPASS 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Setting root password for SQL."
-/usr/bin/mysqladmin -u root -p$SQLPASS -f drop test 3>&1 4>&2 >>/tmp/build.log 2>&1
+/usr/bin/mysqladmin -u root -p$SQLPASS -f drop test 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Dropping database test."
 echo "
 [client]
@@ -298,8 +299,8 @@ echo -e "Monit configured for Apache and MySQL. Listening on port 2812."
 
 
 ### PMA ###
-wget -O /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz $URL/files/phpmyadmin.tar.gz 3>&1 4>&2 >>/tmp/build.log 2>&1
-tar -zxf /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz -C /home/www/$DOMAIN/subdomains 3>&1 4>&2 >>/tmp/build.log 2>&1
+wget -O /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz $URL/files/phpmyadmin.tar.gz 3>&1 4>&2 >>$BUILDLOG 2>&1
+tar -zxf /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz -C /home/www/$DOMAIN/subdomains 3>&1 4>&2 >>$BUILDLOG 2>&1
 rm -f /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz
 mv /home/www/$DOMAIN/subdomains/phpMyAdmin* /home/www/$DOMAIN/subdomains/pma
 echo "<?php
@@ -315,7 +316,7 @@ echo -e "PhpMyAdmin installed with root $SQLPASS. Make sure to keep it updated."
 
 ### Munin ###
 sed -i "s/\[localhost\]/\[$DOMAIN\]/g" /etc/munin/munin.conf
-pushd /etc/munin/plugins 3>&1 4>&2 >>/tmp/build.log 2>&1
+pushd /etc/munin/plugins 3>&1 4>&2 >>$BUILDLOG 2>&1
 find /etc/munin/plugins -exec unlink {} \; >/dev/null 2>&1
 ln -s /usr/share/munin/plugins/cpu /etc/munin/plugins/cpu
 ln -s /usr/share/munin/plugins/df /etc/munin/plugins/df
@@ -339,7 +340,7 @@ group wheel
 env.mysqladmin /usr/bin/mysqladmin
 env.mysqlopts --defaults-extra-file=/root/.my.cnf
 " >> /etc/munin/plugin-conf.d/munin-node
-pushd /root 3>&1 4>&2 >>/tmp/build.log 2>&1
+pushd /root 3>&1 4>&2 >>$BUILDLOG 2>&1
 htpasswd -b -c /var/www/html/munin/.htpasswd munin $MUNINPASS
 echo -e "Munin configured with password $MUNINPASS."
 
@@ -386,10 +387,10 @@ chkconfig --level 2345 munin-node on
 chkconfig --level 2345 vsftpd on
 echo "Final configurations done."
 echo "Starting Apache, Monit, Munin, VsFTPd..."
-service httpd start 3>&1 4>&2 >>/tmp/build.log 2>&1
-service monit start 3>&1 4>&2 >>/tmp/build.log 2>&1
-service munin-node start 3>&1 4>&2 >>/tmp/build.log 2>&1
-service vsftpd start 3>&1 4>&2 >>/tmp/build.log 2>&1
+service httpd start 3>&1 4>&2 >>$BUILDLOG 2>&1
+service monit start 3>&1 4>&2 >>$BUILDLOG 2>&1
+service munin-node start 3>&1 4>&2 >>$BUILDLOG 2>&1
+service vsftpd start 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Everything started."
 
 echo -e "\n*****************************************************************"
@@ -562,8 +563,8 @@ echo -e "\n*****************************************************************\n"
 function notify {
 
 		rm -f /root/centos6.sh
-		echo -e "A new server has been built. Here's the debug log attached." | mutt -a "/tmp/build.log" -s "New server builded: `hostname`" -- kj@aeris.pro
-		rm -f /tmp/build.log
+		echo -e "A new server has been built. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- kj@aeris.pro
+		rm -f $BUILDLOG
 		rm -f /root/sent
 		cat /dev/null > /root/.bash_history
 		echo -e "\nAn email of the build as been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
@@ -598,45 +599,45 @@ for service in $SERVICES; do
 /sbin/chkconfig --level 2345 $service off >/dev/null 2>&1
 done
 
-/etc/init.d/auditd stop 3>&1 4>&2 >>/tmp/build.log 2>&1
-/etc/init.d/httpd stop 3>&1 4>&2 >>/tmp/build.log 2>&1
-/etc/init.d/xinetd stop 3>&1 4>&2 >>/tmp/build.log 2>&1
-/etc/init.d/saslauthd stop 3>&1 4>&2 >>/tmp/build.log 2>&1
-/etc/init.d/iptables stop 3>&1 4>&2 >>/tmp/build.log 2>&1
-/etc/init.d/sendmail stop 3>&1 4>&2 >>/tmp/build.log 2>&1
+/etc/init.d/auditd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
+/etc/init.d/httpd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
+/etc/init.d/xinetd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
+/etc/init.d/saslauthd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
+/etc/init.d/iptables stop 3>&1 4>&2 >>$BUILDLOG 2>&1
+/etc/init.d/sendmail stop 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "All unused services have been stopped and removed from boot."
 
 echo -e "\n*****************************************************************"
 echo -e "Removing useless rpms.."
 echo -e "*****************************************************************\n"
 
-yum clean all 3>&1 4>&2 >>/tmp/build.log 2>&1
-yum remove -y $RPMS 3>&1 4>&2 >>/tmp/build.log 2>&1
-yum remove -y *.i386 3>&1 4>&2 >>/tmp/build.log 2>&1
-rm -f /root/anaconda-ks.cfg  /root/install.log  /root/install.log.syslog 3>&1 4>&2 >>/tmp/build.log 2>&1
+yum clean all 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum remove -y $RPMS 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum remove -y *.i386 3>&1 4>&2 >>$BUILDLOG 2>&1
+rm -f /root/anaconda-ks.cfg  /root/install.log  /root/install.log.syslog 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Yum cleared. Unused packages and all i386 packages have been removed."
 
 echo -e "\n*****************************************************************"
 echo -e "Updating packages.."
 echo -e "*****************************************************************\n"
 
-yum -y update 3>&1 4>&2 >>/tmp/build.log 2>&1
+yum -y update 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "All installed packages have been updated."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing EPEL repo.."
 echo -e "*****************************************************************\n"
 
-yum install -y $URL/repos/epel-release-6-5.noarch.rpm 3>&1 4>&2 >>/tmp/build.log 2>&1
+yum install -y $URL/repos/epel-release-6-5.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "EPEL repo installed for usefull packages."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
 echo -e "*****************************************************************\n"
 
-yum install -y bc bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nethogs openssh-clients pbzip2 perl pigz postfix pv screen sysbench 3>&1 4>&2 >>/tmp/build.log 2>&1
-yum remove -y sendmail 3>&1 4>&2 >>/tmp/build.log 2>&1
-/etc/init.d/postfix start 3>&1 4>&2 >>/tmp/build.log 2>&1
+yum install -y bc bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nethogs openssh-clients pbzip2 perl pigz postfix pv screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum remove -y sendmail 3>&1 4>&2 >>$BUILDLOG 2>&1
+/etc/init.d/postfix start 3>&1 4>&2 >>$BUILDLOG 2>&1
 chkconfig postfix on
 echo "All packages have been installed. Sendmail switched for postfix."
 chmod 775 /var/run/screen
@@ -681,7 +682,7 @@ echo -e "*****************************************************************\n"
 
 ### Virtualization ###
 
-yum install -y virt-what 3>&1 4>&2 >>/tmp/build.log 2>&1
+yum install -y virt-what 3>&1 4>&2 >>$BUILDLOG 2>&1
 
 VIRT=`virt-what |head -n1`
 
@@ -722,10 +723,10 @@ echo -e "*****************************************************************\n"
 if [ "$VIRT" == "openvz" ] || [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
 	echo "vm.swappiness = 1" >> /etc/sysctl.conf
 	echo "Swappiness done."
-	wget -O /opt/scripts/mysqltuner.pl $URL/scripts/mysqltuner.pl 3>&1 4>&2 >>/tmp/build.log 2>&1
+	wget -O /opt/scripts/mysqltuner.pl $URL/scripts/mysqltuner.pl 3>&1 4>&2 >>$BUILDLOG 2>&1
 	chmod +x /opt/scripts/mysqltuner.pl
 	echo "MySQL Tuner script done."
-	wget -O /opt/scripts/backup-mysql.sh $URL/scripts/backup-mysql.sh 3>&1 4>&2 >>/tmp/build.log 2>&1
+	wget -O /opt/scripts/backup-mysql.sh $URL/scripts/backup-mysql.sh 3>&1 4>&2 >>$BUILDLOG 2>&1
 	chmod +x /opt/scripts/backup-mysql.sh
 	echo "MySQL Backup script done."
 fi
@@ -759,11 +760,11 @@ if [ "$VIRT" == "node" ]; then
 	echo "vm.swappiness = 1" >> /etc/sysctl.conf
 	echo -e "Swappiness done."
 	echo "Installing few packages for node.."
-	yum install -y kpartx lm_sensors ipmitool 3>&1 4>&2 >>/tmp/build.log 2>&1
-	yum install -y ebtables 3>&1 4>&2 >>/tmp/build.log 2>&1
+	yum install -y kpartx lm_sensors ipmitool 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum install -y ebtables 3>&1 4>&2 >>$BUILDLOG 2>&1
 	echo "Ebtables installed, need for IP stealing."
 	sed -i "s/\Port\ 2222/Port\ 25000/g" /etc/ssh/sshd_config
-	/etc/init.d/sshd restart 3>&1 4>&2 >>/tmp/build.log 2>&1
+	/etc/init.d/sshd restart 3>&1 4>&2 >>$BUILDLOG 2>&1
 	echo "SSH port switched to 25000."
 	echo "/usr/sbin/ntpdate -b ca.pool.ntp.org" >> /etc/rc.local
 	echo -e "NTP added."
