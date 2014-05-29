@@ -119,12 +119,12 @@ echo -e "Apache / Nginx Webkit preparation"
 echo -e "What is the main domain? Will be used to install Web/PMA/Munin/Monit/Staging\n"
 read -p "Enter the domain : " -e DOMAIN
 echo -e "\nChoose PHP version: builtin|53|54|55"
-echo -e "Built-in (default) will also use built-in MySQL. Others use latest PHP with latest MySQL 5.5 OR MariaDB 10\n"
+echo -e "Built-in (default) will also use built-in MySQL. Others use latest PHP with latest MySQL 5.6 OR MariaDB 10\n"
 read -p "Enter PHP version: " -e PHPVERSION
 
 if [ "$PHPVERSION" == "53" ] || [ "$PHPVERSION" == "54" ] || [ "$PHPVERSION" == "55" ]; then
 	echo -e "\nThis PHP version allows MariaDB support."
-	read -p "Do you want to switch MySQL 5.5 for MariaDB 10? (N/y): " -e MariaDB_INPUT
+	read -p "Do you want to switch MySQL 5.6 for MariaDB 10? (N/y): " -e MariaDB_INPUT
 	if [ "$MariaDB_INPUT" == "y" ] || [ "$MariaDB_INPUT" == "Y" ]; then
 		MariaDB=true
 	fi
@@ -174,7 +174,7 @@ gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
 			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	echo -e "Latest MySQL 5.5 have been installed."
+	    	echo -e "Latest MySQL 5.6 have been installed."
 		fi   	
 elif [ $PHPVERSION == "54" ];
 	then
@@ -196,7 +196,7 @@ gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
 			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	echo -e "Latest MySQL 5.5 have been installed."
+	    	echo -e "Latest MySQL 5.6 have been installed."
 		fi 
 elif [ $PHPVERSION == "55" ];
 	then
@@ -218,7 +218,7 @@ gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
 			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
 	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	echo -e "Latest MySQL 5.5 has been installed."
+	    	echo -e "Latest MySQL 5.6 has been installed."
 		fi 
 	    
 else

@@ -25,11 +25,11 @@ This script will install the latest stable version of cPanel.
 
 ### LAMP
 
-This script will let you choose between PHP 5.3 5.4 5.5 and the one built-in in the OS. It will also let you install MySQL 5.5 and MariaDB 10.
+This script will let you choose between PHP 5.3 5.4 5.5 and the one built-in in the OS. It will also let you install MySQL 5.6 and MariaDB 10.
 
 * Apache
 * PHP built-in|53|54|55
-* MySQL built-in|55|mariadb10
+* MySQL built-in|56|mariadb10
 * VsFTPd
 * Munin
 * Monit
