@@ -635,7 +635,7 @@ echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
 echo -e "*****************************************************************\n"
 
-yum install -y bc bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nethogs openssh-clients pbzip2 perl pigz postfix pv screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum install -y bc bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nc nethogs openssh-clients pbzip2 perl pigz postfix pv screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum remove -y sendmail 3>&1 4>&2 >>$BUILDLOG 2>&1
 /etc/init.d/postfix start 3>&1 4>&2 >>$BUILDLOG 2>&1
 chkconfig postfix on
