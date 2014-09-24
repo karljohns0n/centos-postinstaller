@@ -7,7 +7,7 @@
 
 ######## Global variables ########
 
-URL="http://sky.aerisnetwork.net/build"
+URL="http://build.aerisnetwork.com"
 BUILDLOG="/tmp/build.log"
 
 ### IP ###
@@ -561,13 +561,12 @@ echo -e "\n*****************************************************************\n"
 }
 
 function notify {
-
-		rm -f /root/centos6.sh
-		echo -e "A new server has been built. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- kj@aeris.pro
-		rm -f $BUILDLOG
-		rm -f /root/sent
-		cat /dev/null > /root/.bash_history
-		echo -e "\nAn email of the build as been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
+	rm -f /root/centos6.sh
+	echo -e "A new server has been built. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- kj@aeris.pro
+	rm -f $BUILDLOG
+	rm -f /root/sent
+	cat /dev/null > /root/.bash_history
+	echo -e "\nAn email of the build as been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
 }
 
 ################################################################################################
@@ -625,11 +624,13 @@ yum -y update 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "All installed packages have been updated."
 
 echo -e "\n*****************************************************************"
-echo -e "Installing EPEL repo.."
+echo -e "Installing EPEL and Aeris repos.."
 echo -e "*****************************************************************\n"
 
 yum install -y $URL/repos/epel-release-6-5.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo "EPEL repo installed for usefull packages."
+yum install -y $URL/repos/aeris-release-1.0-1.el6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum clean all 3>&1 4>&2 >>$BUILDLOG 2>&1
+echo "EPEL and Aeris repos installed for usefull packages."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
@@ -781,7 +782,7 @@ echo -e "Server: `hostname`"
 echo -e "Virtualization: $VIRT"
 echo -e "IP: $IP\n"
 echo -e "CentOS cleaned! What's next?\n"
-echo -e "[0] Quit installer"
+echo -e "[0] Quit builder"
 echo -e "[1] Proceed with cPanel"
 echo -e "[2] Proceed with LAMP 53/54/55"
 echo -e "[3] "
@@ -793,7 +794,6 @@ read -p "Enter action number : " -e PROCEED_INPUT
 
 case "$PROCEED_INPUT" in
         0)
-		notify;
 		exit 0;
 		;;
 		1)
@@ -812,7 +812,6 @@ case "$PROCEED_INPUT" in
 		exit 0;
 		;;
 		*)
-	    notify;
         exit 0;
         ;;
 esac
@@ -838,8 +837,49 @@ done
 
 if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == "CentOS 6" ]] && [[ `uname -p` == "x86_64" ]]
 then
-	echo -e "\nWe are running on CentOS 6 64bits, best OS -.-  we can continue .. \n"
-	cleanup
+	echo -e "\n******************** CentOS 6 Builder ********************\n"
+	echo -e "Server: `hostname`"
+	echo -e "IP: $IP\n"
+	echo -e "[0] Quit builder"
+	echo -e "[1] Clean and optimize the OS"
+	echo -e "[2] Proceed with cPanel"
+	echo -e "[3] Proceed with LAMP 53/54/55"
+	echo -e "[4] "
+	echo -e "[5] Proceed with Zimbra"
+	echo -e "[6] Proceed with FreePBX"
+	echo -e "\n**********************************************************\n"
+	read -p "Enter action number : " -e START_INPUT
+
+	case "$START_INPUT" in
+        0)
+		notify;
+		exit 0;
+		;;
+		1)
+		cleanup;
+		notify;
+		exit 0;
+		;;
+		2)
+		cpanel;
+		notify;
+		exit 0;
+		;;
+		3)
+		cpanel;
+		notify;
+		exit 0;
+		;;
+		6)
+		freepbx;
+		notify;
+		exit 0;
+		;;
+		*)
+	    notify;
+        exit 0;
+        ;;
+	esac
 else
 	echo -e "\nNot on CentOS 6 64bits, please reinstall -.- \n"
 fi

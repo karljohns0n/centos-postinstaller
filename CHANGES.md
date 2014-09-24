@@ -1,3 +1,14 @@
+## 2.34 - 2014/X/X ##
+
+- Show menu first instead of cleaning at start
+- Add Aeris repo
+- Add new cpwpcheck.sh script to list all WP versions on cPanel servers and chmod wp-config.php
+- Updating doc for MySQL 5.6. Add PageSpeed flush cache.
+- Switch MySQL 5.5 to 5.6. Configure log file in variable
+- Add new script to clean Nginx cache
+- Cleanup in centos6.sh. Fix vm.swapiness to 1 instead of 0. Add ner useful packages
+- Replace Sendmail by Postfix. Benchmark IO/Net/CPU. Code cleanup
+
 ## 2.33 - 2014/04/04 ##
 
 - MariaDB integration for LAMP
