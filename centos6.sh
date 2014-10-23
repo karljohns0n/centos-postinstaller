@@ -22,6 +22,13 @@ else
 		IP="127.0.0.1"
 fi
 
+# Simple next/go function
+function enter ()
+ {
+  echo ""
+  read -sn 1 -p "All done! Press any key to continue..."
+  clear
+ }
 
 ################################################################################################
 ################################### Option 1 cPanel Startup ####################################
@@ -62,9 +69,9 @@ bind-address = 127.0.0.1
 query-cache-type = 1
 query-cache-size = 32M
 query_cache_limit = 4M
-table_cache = 1000  ### replace table_open_cache= if MySQL 5.6
-open_files_limit = 2000
-max_connections = 100
+table_cache = 1024  ### replace table_open_cache= if MySQL 5.6
+open_files_limit = 2048
+max_connections = 75
 thread_cache_size = 2
 tmp_table_size = 32M
 max_heap_table_size = 32M
@@ -276,25 +283,8 @@ echo -e "SQL server configured with root password $SQLPASS."
 echo "Monit monitoring" > /var/www/html/monit.html
 echo "Default" > /var/www/html/index.html
 echo "<?php echo 'Current PHP version: ' . phpversion(); ?>" > /home/www/$DOMAIN/public_html/index.php
-
-echo "set httpd port 2812 and allow monit:$MONITPASS" >> /etc/monit.conf
-echo "check process httpd with pidfile /etc/httpd/run/httpd.pid
-group apache
-start program = \"/etc/init.d/httpd start\"
-stop program = \"/etc/init.d/httpd stop\"
-mode active
-if failed host 127.0.0.1 port 80 protocol http
-and request \"/monit.html\"
-then restart
-if 5 restarts within 5 cycles then timeout
-">/etc/monit.d/apache
-echo "check process mysqld with pidfile /var/run/mysqld/mysqld.pid
-start program = \"/etc/init.d/mysqld start\"
-stop program = \"/etc/init.d/mysqld stop\"
-mode active
-if failed host 127.0.0.1 port 3306 then restart
-if 5 restarts within 5 cycles then timeout
-">/etc/monit.d/mysqld
+sed -i "s/use\ address\ localhost/\#use\ address\ localhost/g" /etc/monitrc
+sed -i "s/allow\ monit\:monit/allow\ monit\:$MONITPASS/g" /etc/monitrc
 echo -e "Monit configured for Apache and MySQL. Listening on port 2812."
 
 
@@ -395,9 +385,7 @@ echo "Everything started."
 
 echo -e "\n*****************************************************************"
 echo -e "Webkit installed!\n"
-echo -e "Information for Jira ticket:\n"
-echo -e "h3.Configurations"
-echo -e "\n*Services*\n"
+echo -e "Please copy all those information carefully:\n"
 echo -e "SSH: root / replace"
 echo -e "Apache: www / $WWWPASS"
 echo -e "FTP: www / $WWWPASS"
@@ -560,14 +548,6 @@ echo -e "\n*****************************************************************\n"
 
 }
 
-function notify {
-	rm -f /root/centos6.sh
-	echo -e "A new server has been built. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- kj@aeris.pro
-	rm -f $BUILDLOG
-	rm -f /root/sent
-	cat /dev/null > /root/.bash_history
-	echo -e "\nAn email of the build as been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
-}
 
 ################################################################################################
 ################################## OS Cleanup Startup ##########################################
@@ -629,6 +609,7 @@ echo -e "*****************************************************************\n"
 
 yum install -y $URL/repos/epel-release-6-5.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum install -y $URL/repos/aeris-release-1.0-1.el6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+sed -i '/enabled\=1/a exclude\=nginx*,monit*' /etc/yum.repos.d/epel.repo 
 yum clean all 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "EPEL and Aeris repos installed for usefull packages."
 
@@ -636,7 +617,7 @@ echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
 echo -e "*****************************************************************\n"
 
-yum install -y bc bind-utils gcc gcc-c++ git htop iftop iotop hdparm make mtr mutt nc nethogs openssh-clients pbzip2 perl pigz postfix pv screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum install -y bc bind-utils gcc gcc-c++ file git htop iftop iotop hdparm make mtr mutt nc nethogs openssh-clients pbzip2 perl pigz postfix pv rsync screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum remove -y sendmail 3>&1 4>&2 >>$BUILDLOG 2>&1
 /etc/init.d/postfix start 3>&1 4>&2 >>$BUILDLOG 2>&1
 chkconfig postfix on
@@ -775,47 +756,23 @@ if [ "$VIRT" == "node" ]; then
 	echo -e "If the node is a Xen dom0, add ethtool command to /etc/rc.local."
 fi
 
+}
 
 
-echo -e "\n************************* SUMMARY *******************************\n"
-echo -e "Server: `hostname`"
-echo -e "Virtualization: $VIRT"
-echo -e "IP: $IP\n"
-echo -e "CentOS cleaned! What's next?\n"
-echo -e "[0] Quit builder"
-echo -e "[1] Proceed with cPanel"
-echo -e "[2] Proceed with LAMP 53/54/55"
-echo -e "[3] "
-echo -e "[4] "
-echo -e "[5] Proceed with Zimbra"
-echo -e "[6] Proceed with FreePBX"
-echo -e "\n*****************************************************************\n"
-read -p "Enter action number : " -e PROCEED_INPUT
+################################################################################################
+######################################## Notify ################################################
 
-case "$PROCEED_INPUT" in
-        0)
-		exit 0;
-		;;
-		1)
-		cpanel;
-		notify;
-		exit 0;
-		;;
-		2)
-		lamp;
-		notify;
-		exit 0;
-		;;
-		6)
-		freepbx;
-		notify;
-		exit 0;
-		;;
-		*)
-        exit 0;
-        ;;
-esac
-
+function notify {
+	rm -f /root/centos6.sh
+	if [ -f /usr/bin/mutt ]; then
+		echo -e "A new server has been built. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- kj@aeris.pro
+		echo -e "\nAn email of the build as been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
+		rm -f $BUILDLOG
+		rm -f /root/sent
+	else
+		echo -e "\nMutt is't installed so we cannot send a report email. Please see $BUILDLOG\nPlease mannualy clear history with history -c\n"
+	fi
+	cat /dev/null > /root/.bash_history
 }
 
 
@@ -835,51 +792,34 @@ do
         INT=$((INT-1))
 done
 
-if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == "CentOS 6" ]] && [[ `uname -p` == "x86_64" ]]
-then
-	echo -e "\n******************** CentOS 6 Builder ********************\n"
-	echo -e "Server: `hostname`"
-	echo -e "IP: $IP\n"
-	echo -e "[0] Quit builder"
-	echo -e "[1] Clean and optimize the OS"
-	echo -e "[2] Proceed with cPanel"
-	echo -e "[3] Proceed with LAMP 53/54/55"
-	echo -e "[4] "
-	echo -e "[5] Proceed with Zimbra"
-	echo -e "[6] Proceed with FreePBX"
-	echo -e "\n**********************************************************\n"
-	read -p "Enter action number : " -e START_INPUT
+if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == "CentOS 6" ]] && [[ `uname -p` == "x86_64" ]]; then
 
-	case "$START_INPUT" in
-        0)
-		notify;
-		exit 0;
-		;;
-		1)
-		cleanup;
-		notify;
-		exit 0;
-		;;
-		2)
-		cpanel;
-		notify;
-		exit 0;
-		;;
-		3)
-		cpanel;
-		notify;
-		exit 0;
-		;;
-		6)
-		freepbx;
-		notify;
-		exit 0;
-		;;
-		*)
-	    notify;
-        exit 0;
-        ;;
-	esac
+	selection=
+	until [ "$selection" = "0" ]; do
+		echo -e "\n******************** CentOS 6 Builder ********************\n"
+		echo -e "Server: `hostname`"
+		echo -e "IP: $IP\n"
+		echo -e "[0] Quit builder"
+		echo -e "[1] Clean and optimize the OS"
+		echo -e "[2] Proceed with cPanel"
+		echo -e "[3] Proceed with LAMP 53/54/55"
+		echo -e "[4] "
+		echo -e "[5] Proceed with Zimbra"
+		echo -e "[6] Proceed with FreePBX"
+		echo -e "\n**********************************************************\n"
+	    echo -n "Enter selection: "
+	    read selection
+	    echo ""
+	    case $selection in
+			1 ) cleanup;enter ;;
+			2 ) cpanel;enter ;;
+		    3 ) lamp;enter ;;
+			6 ) freepbx;enter ;;
+			0 ) notify;exit ;;
+		    * ) echo "Please enter 1, 2, 3, 4, 5, 6 or 0"
+	    esac
+	done
+
 else
 	echo -e "\nNot on CentOS 6 64bits, please reinstall -.- \n"
 fi
