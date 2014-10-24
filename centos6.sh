@@ -27,7 +27,6 @@ function enter ()
  {
   echo ""
   read -sn 1 -p "All done! Press any key to continue..."
-  clear
  }
 
 ################################################################################################
@@ -294,11 +293,11 @@ tar -zxf /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz -C /home/www/$DOMAIN/sub
 rm -f /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz
 mv /home/www/$DOMAIN/subdomains/phpMyAdmin* /home/www/$DOMAIN/subdomains/pma
 echo "<?php
-$cfg['blowfish_secret'] = '$PMA';
+\$cfg['blowfish_secret'] = '$PMA';
  
-$i=0;
-$i++;
-$cfg['Servers'][$i]['auth_type']     = 'cookie';
+\$i=0;
+\$i++;
+\$cfg['Servers'][\$i]['auth_type']     = 'cookie';
 ?>" > /home/www/$DOMAIN/subdomains/pma/config.inc.php
 rm -rf /home/www/$DOMAIN/subdomains/pma/setup
 echo -e "PhpMyAdmin installed with root $SQLPASS. Make sure to keep it updated."
@@ -610,8 +609,8 @@ echo -e "*****************************************************************\n"
 yum install -y $URL/repos/epel-release-6-5.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum install -y $URL/repos/aeris-release-1.0-1.el6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 sed -i '/enabled\=1/a exclude\=nginx*,monit*' /etc/yum.repos.d/epel.repo 
-yum clean all 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "EPEL and Aeris repos installed for usefull packages."
+echo "Disabling nginx and monit from EPEL for better version in Aeris."
 
 echo -e "\n*****************************************************************"
 echo -e "Installing usefull packages and directories.."
@@ -799,13 +798,13 @@ if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == 
 		echo -e "\n******************** CentOS 6 Builder ********************\n"
 		echo -e "Server: `hostname`"
 		echo -e "IP: $IP\n"
-		echo -e "[0] Quit builder"
 		echo -e "[1] Clean and optimize the OS"
 		echo -e "[2] Proceed with cPanel"
-		echo -e "[3] Proceed with LAMP 53/54/55"
-		echo -e "[4] "
+		echo -e "[3] Proceed with LAMP 53/54/55/56"
+		echo -e "[4] Proceed with LEMP 53/54/55/56"
 		echo -e "[5] Proceed with Zimbra"
-		echo -e "[6] Proceed with FreePBX"
+		echo -e "[6] Proceed with FreePBX\n"
+		echo -e "[0] Quit builder"
 		echo -e "\n**********************************************************\n"
 	    echo -n "Enter selection: "
 	    read selection
