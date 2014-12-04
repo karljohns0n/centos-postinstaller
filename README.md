@@ -1,16 +1,17 @@
-# CentOS 6 Builder
+# CentOS 6 & 7 Builder
 ### by Karl Johnson - kjohnson@aerisnetwork.com
 
 ## Build
 
 ### Cleanup
 
-This script is started automatically if the OS is CentOS 6 64bits to clean it. This script assume that we are on a brand new server, it's really important as some packages will be removed.
+This script assume that we are on a brand new server, it's really important as some packages will be removed.
 
 * Disable SELinux, set Timezone, disable useless services
 * Remove unused packages and update OS
 * Install Karl's SSH keys and switch SSH port
 * Install usefull packages
+* Install Aeris and EPEL repos
 * Create directories in /opt
 * Detect virtualization and IP for custom rules
 
@@ -25,10 +26,11 @@ This script will install the latest stable version of cPanel.
 
 ### LAMP
 
-This script will let you choose between PHP 5.3 5.4 5.5 and the one built-in in the OS. It will also let you install MySQL 5.6 and MariaDB 10.
+This script will let you choose between Apache/Nginx-more and PHP 5.3/5.4/5.5/5.6 and the one built-in in the OS. It will also let you install MySQL 5.6 or MariaDB 10.
 
 * Apache
-* PHP built-in|53|54|55
+* Nginx-more
+* PHP built-in|53|54|55|56
 * MySQL built-in|56|mariadb10
 * VsFTPd
 * Munin

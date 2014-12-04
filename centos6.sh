@@ -3,7 +3,7 @@
 # CentOS 6 epic Cleaner and Installer
 # By kjohnson@aerisnetwork.com
 # 
-# v2.34 2014-04-04
+# v2.34 2014-12-04
 
 ######## Global variables ########
 
@@ -22,12 +22,49 @@ else
 		IP="127.0.0.1"
 fi
 
-# Simple next/go function
-function enter ()
- {
-  echo ""
-  read -sn 1 -p "All done! Press any key to continue..."
- }
+################################################################################################
+#####################################  Next/Go function ########################################
+
+function enter () {
+	echo ""
+	read -sn 1 -p "All done! Press any key to continue..."
+}
+
+
+################################################################################################
+######################################  Verify deps ############################################
+
+function verifydep () {
+
+	echo -e "\nChecking global dependencies before proceeding..\n"
+
+	## Verify Aeris and EPEL Repos
+
+	if [ ! -f /etc/yum.repos.d/aeris.repo ]; then
+    	yum install -y $URL/repos/aeris-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+    	echo "Aeris yum repository installed. Are you sure cleanup script has been run first?"
+	fi
+
+	if [ ! -f /etc/yum.repos.d/epel.repo ]; then
+    	yum install -y $URL/repos/epel-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+    	echo "EPEL yum repository installed. Are you sure cleanup script has been run first?"
+	fi
+
+	## Vérify opt directories
+
+	if [ ! -d /opt/src ] ;then
+		mkdir /opt/src
+		echo "Directory /opt/src created. Are you sure cleanup script has been run first?"
+	fi
+
+	if [ ! -d /opt/scripts ] ;then
+		mkdir /opt/scripts
+		echo "Directory /opt/scripts created. Are you sure cleanup script has been run first?"
+	fi
+
+	echo -e "Global dependencies checkup done. Proceeding..\n"
+}
+
 
 ################################################################################################
 ################################### Option 1 cPanel Startup ####################################
@@ -107,7 +144,7 @@ echo -e "\n*****************************************************************\n"
 
 
 ################################################################################################
-############################### Option 3 LAMP with Nginx Startup ###############################
+############################### Option 3 LAMP and LEMP Startup #################################
 
 function lamp {
 
@@ -117,6 +154,7 @@ MONITPASS=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
 MUNINPASS=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
 PMA=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
 MariaDB=false
+Nginx=false
 
 ### Domain configuration ###
 
@@ -124,11 +162,16 @@ echo -e "\n*****************************************************************"
 echo -e "Apache / Nginx Webkit preparation"
 echo -e "What is the main domain? Will be used to install Web/PMA/Munin/Monit/Staging\n"
 read -p "Enter the domain : " -e DOMAIN
-echo -e "\nChoose PHP version: builtin|53|54|55"
-echo -e "Built-in (default) will also use built-in MySQL. Others use latest PHP with latest MySQL 5.6 OR MariaDB 10\n"
+read -p "Do you want to use Nginx and PHP-FPM instead of Apache? (N/y): " -e Nginx_INPUT
+if [ "$Nginx_INPUT" == "y" ] || [ "$Nginx_INPUT" == "Y" ]; then
+		Nginx=true
+fi
+echo -e "\nChoose PHP version: builtin|53|54|55|56"
+echo -e "Built-in (default) will also use built-in MySQL. Others use latest PHP with latest MySQL 5.6 or MariaDB 10"
+echo -e "Nginx note: built-in PHP not supported.\n"
 read -p "Enter PHP version: " -e PHPVERSION
 
-if [ "$PHPVERSION" == "53" ] || [ "$PHPVERSION" == "54" ] || [ "$PHPVERSION" == "55" ]; then
+if [ "$PHPVERSION" == "53" ] || [ "$PHPVERSION" == "54" ] || [ "$PHPVERSION" == "55" ] || [ "$PHPVERSION" == "56" ]; then
 	echo -e "\nThis PHP version allows MariaDB support."
 	read -p "Do you want to switch MySQL 5.6 for MariaDB 10? (N/y): " -e MariaDB_INPUT
 	if [ "$MariaDB_INPUT" == "y" ] || [ "$MariaDB_INPUT" == "Y" ]; then
@@ -152,86 +195,85 @@ echo -e "Directories for $DOMAIN and services are created."
 
 
 echo -e "\n*****************************************************************"
-echo -e "Installing packages.."
+echo -e "Installing all PHP modules and SQL server.."
 echo -e "*****************************************************************\n"
 
-## Notes: No ionCube module in PHP 5.5 repo as of 2014/03/28
-
-yum install -y db4-utils httpd httpd-devel monit munin munin-node vsftpd 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum install -y db4-utils monit munin munin-node vsftpd 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo -e "Default packages installed."
 
-if [ $PHPVERSION == "53" ];
-	then
-		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-		echo -e "IUScommunity repo installed."
-		yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
-		yum install -y php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcache php53u-soap php53u-tidy php53u-xml php53u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-		echo -e "Latest PHP 5.3 has been installed."
-		if [[ "$MariaDB" == true ]]; then
-			echo "[mariadb]
-name = MariaDB
-baseurl = http://yum.mariadb.org/10.0/centos6-amd64
-gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
-			echo -e "MariaDB repo installed."
-			yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
-			echo -e "Latest MariaDB 10 has been installed."
-		else
-			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	echo -e "Latest MySQL 5.6 have been installed."
-		fi   	
-elif [ $PHPVERSION == "54" ];
-	then
-		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-		echo -e "IUScommunity repo installed."
-		yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
-		yum install -y php54 php54-cli php54-common php54-devel php54-enchant php54-gd php54-imap php54-ioncube-loader php54-mbstring php54-mcrypt php54-mysql php54-pdo php54-pear php54-pecl-memcache php54-soap php54-tidy php54-xml php54-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-		echo -e "Latest PHP 5.4 has been installed."
-		if [[ "$MariaDB" == true ]]; then
-			echo "[mariadb]
-name = MariaDB
-baseurl = http://yum.mariadb.org/10.0/centos6-amd64
-gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
-			echo -e "MariaDB repo installed."
-			yum install -y -q MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
-			echo -e "Latest MariaDB 10 has been installed."
-		else
-			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	echo -e "Latest MySQL 5.6 have been installed."
-		fi 
-elif [ $PHPVERSION == "55" ];
-	then
-		yum install -y $URL/repos/ius-release-1.0-11.ius.centos6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-		echo -e "IUScommunity repo installed."
-		yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
-		yum install -y php55u php55u-cli php55u-common php55u-devel php55u-enchant php55u-gd php55u-imap php55u-ioncube-loader php55u-mbstring php55u-mcrypt php55u-mysql php55u-pdo php55u-pear php55u-pecl-memcache php55u-soap php55u-tidy php55u-xml php55u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    echo -e "Latest PHP 5.5 has been installed. Keep in mind that PHP 5.5 doesn't support ionCube yet."
-		if [[ "$MariaDB" == true ]]; then
-			echo "[mariadb]
-name = MariaDB
-baseurl = http://yum.mariadb.org/10.0/centos6-amd64
-gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
-			echo -e "MariaDB repo installed."
-			yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
-			echo -e "Latest MariaDB 10 have been installed."
-		else
-			yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
-	    	echo -e "Latest MySQL 5.6 has been installed."
-		fi 
-	    
+## Notes: No ionCube module in IUS PHP 5.5 and 5.6 repo as of 2014/11/18
+
+if [ $PHPVERSION == "53" ]; then
+	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "IUScommunity repo installed."
+	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum install -y php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcache php53u-pecl-memcached php53u-soap php53u-tidy php53u-xml php53u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "Latest PHP 5.3 has been installed."  	
+elif [ $PHPVERSION == "54" ]; then
+	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "IUScommunity repo installed."
+	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum install -y php54 php54-cli php54-common php54-devel php54-enchant php54-gd php54-imap php54-ioncube-loader php54-mbstring php54-mcrypt php54-mysql php54-pdo php54-pear php54-pecl-memcache php54-pecl-memcached php54-soap php54-tidy php54-xml php54-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "Latest PHP 5.4 has been installed."
+elif [ $PHPVERSION == "55" ]; then
+	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "IUScommunity repo installed."
+	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum install -y php55u php55u-cli php55u-common php55u-devel php55u-enchant php55u-gd php55u-imap php55u-ioncube-loader php55u-mbstring php55u-mcrypt php55u-mysql php55u-pdo php55u-pear php55u-pecl-memcache php55u-pecl-memcached php55u-soap php55u-tidy php55u-xml php55u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
+    echo -e "Latest PHP 5.5 has been installed."
+elif [ $PHPVERSION == "56" ]; then
+	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "IUS repo installed."
+	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum install -y php56u php56u-cli php56u-common php56u-devel php56u-enchant php56u-gd php56u-imap php56u-ioncube-loader php56u-mbstring php56u-mcrypt php56u-mysql php56u-pdo php56u-pear php56u-pecl-memcache php56u-pecl-memcached php56u-soap php56u-tidy php56u-xml php56u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
+    echo -e "Latest PHP 5.6 has been installed."    
 else
-		yum install -y mysql mysql-server php php-cli php-common php-devel php-enchant php-gd php-imap php-ioncube-loader php-mbstring php-mcrypt php-mysql php-pdo php-pear php-pecl-memcache php-soap php-tidy php-xml php-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-		echo -e "Built-in PHP and MySQL installed."
+	yum install -y mysql mysql-server php php-cli php-common php-devel php-enchant php-gd php-imap php-ioncube-loader php-mbstring php-mcrypt php-mysql php-pdo php-pear php-pecl-memcache php-soap php-tidy php-xml php-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "Built-in PHP has been installed."
 fi
 
+
+## Installating MySQL 5.6 or MariaDB 10
+
+if [[ "$MariaDB" == true ]]; then
+	echo "[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/10.0/centos6-amd64
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
+	echo -e "MariaDB repo installed."
+	yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo -e "Latest MariaDB 10 has been installed."
+else
+	if [ "$PHPVERSION" == "53" ] || [ "$PHPVERSION" == "54" ] || [ "$PHPVERSION" == "55" ] || [ "$PHPVERSION" == "56" ]; then
+		yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
+		yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
+		yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
+		echo -e "Latest MySQL 5.6 have been installed. Consider disabling performance_schema and bind on 127.0.0.1."
+	else
+		yum install -y mysql mysql-server
+		echo -e "Built-in mySQL has been installed."
+	fi
+fi
+
+echo -e "\n*****************************************************************"
+echo -e "Installing Web server.."
+echo -e "*****************************************************************\n"
+
+if [[ "$Nginx" == true ]]; then
+	yum install -y nginx-more httpd-devel 3>&1 4>&2 >>$BUILDLOG 2>&1
+	if [ $PHPVERSION == "53" ]; then
+		yum install -y php53u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	elif [ $PHPVERSION == "54" ]; then
+		yum install -y php54-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	elif [ $PHPVERSION == "55" ]; then
+		yum install -y php55u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	elif [ $PHPVERSION == "56" ]; then
+		yum install -y php56u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	fi
+else
+	yum install -y httpd httpd-devel 3>&1 4>&2 >>$BUILDLOG 2>&1
+fi
 
 echo -e "\n*****************************************************************"
 echo -e "Adding Web user, set password and permissions.."
@@ -248,12 +290,23 @@ echo -e "Optimizing services configurations.."
 echo -e "*****************************************************************\n"
 
 
-### Apache ###
-mv /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.origin
-wget -O /etc/httpd/conf/httpd.conf $URL/config/httpd22-centos6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
-sed -i "s/replaceme/$DOMAIN/g" /etc/httpd/conf/httpd.conf
-echo -e "Apache configured on port 80 for $DOMAIN."
-
+### Apache / Nginx ###
+if [[ "$Nginx" == true ]]; then
+	wget -O /etc/nginx/conf.d/vhosts/$DOMAIN.conf $URL/config/vhost-nginx-centos6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
+	sed -i "s/replaceme/$DOMAIN/g" /etc/nginx/conf.d/vhosts/$DOMAIN.conf
+	sed -i "s/\#include\ conf.d\/custom\/aerisnetwork\-ips/include\ conf.d\/custom\/aerisnetwork\-ips/g" /etc/nginx/conf.d/custom/admin-ips.conf 
+	echo -e "Nginx configured on port 80 for $DOMAIN. Aeris admin IPs allowed."
+	sed -i "s/apache/www/g" /etc/php-fpm.d/www.conf
+	sed -i "s/\;ping\./ping\./g" /etc/php-fpm.d/www.conf
+	sed -i "s/\;pm.status/pm.status/g" /etc/php-fpm.d/www.conf
+	chown www:root /var/log/php-fpm
+	echo -e "PHP-FPM configured."
+else
+	mv /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.origin
+	wget -O /etc/httpd/conf/httpd.conf $URL/config/vhost-httpd22-centos6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
+	sed -i "s/replaceme/$DOMAIN/g" /etc/httpd/conf/httpd.conf
+	echo -e "Apache configured on port 80 for $DOMAIN."
+fi
 
 ### MySQL ###
 if [[ "$MariaDB" == true ]]; then
@@ -275,6 +328,8 @@ password=$SQLPASS
 ">/root/.my.cnf
 cp /root/.my.cnf /home/www/.my.cnf
 chown www:www /home/www/.my.cnf
+mysql -e "GRANT ALL ON *.* TO root@'127.0.0.1' IDENTIFIED BY '$SQLPASS';"
+mysql -e "FLUSH PRIVILEGES;"
 echo -e "SQL server configured with root password $SQLPASS."
 
 
@@ -284,7 +339,7 @@ echo "Default" > /var/www/html/index.html
 echo "<?php echo 'Current PHP version: ' . phpversion(); ?>" > /home/www/$DOMAIN/public_html/index.php
 sed -i "s/use\ address\ localhost/\#use\ address\ localhost/g" /etc/monitrc
 sed -i "s/allow\ monit\:monit/allow\ monit\:$MONITPASS/g" /etc/monitrc
-echo -e "Monit configured for Apache and MySQL. Listening on port 2812."
+echo -e "Monit listening on port 2812."
 
 
 ### PMA ###
@@ -311,18 +366,26 @@ ln -s /usr/share/munin/plugins/cpu /etc/munin/plugins/cpu
 ln -s /usr/share/munin/plugins/df /etc/munin/plugins/df
 ln -s /usr/share/munin/plugins/load /etc/munin/plugins/load
 ln -s /usr/share/munin/plugins/memory /etc/munin/plugins/memory
-ln -s /usr/share/munin/plugins/apache_accesses /etc/munin/plugins/apache_accesses
-ln -s /usr/share/munin/plugins/apache_volume /etc/munin/plugins/apache_volume
-ln -s /usr/share/munin/plugins/nginx_status /etc/munin/plugins/nginx_status
-ln -s /usr/share/munin/plugins/nginx_request /etc/munin/plugins/nginx_request
 ln -s /usr/share/munin/plugins/mysql_queries /etc/munin/plugins/mysql_queries
 ln -s /usr/share/munin/plugins/mysql_threads /etc/munin/plugins/mysql_threads
 ln -s /usr/share/munin/plugins/mysql_slowqueries /etc/munin/plugins/mysql_slowqueries
-echo "
+ln -s /usr/share/munin/plugins/memcached_ /etc/munin/plugins/memcached_bytes
+ln -s /usr/share/munin/plugins/memcached_ /etc/munin/plugins/memcached_counters
+ln -s /usr/share/munin/plugins/memcached_ /etc/munin/plugins/memcached_rates
+if [[ "$Nginx" == true ]]; then
+	ln -s /usr/share/munin/plugins/nginx_status /etc/munin/plugins/nginx_status
+	ln -s /usr/share/munin/plugins/nginx_request /etc/munin/plugins/nginx_request
+else
+	ln -s /usr/share/munin/plugins/apache_accesses /etc/munin/plugins/apache_accesses
+	ln -s /usr/share/munin/plugins/apache_volume /etc/munin/plugins/apache_volume
+	echo "
 [apache_*]
 env.url   http://127.0.0.1:%d/server-status?auto
 env.ports 80
- 
+" >> /etc/munin/plugin-conf.d/munin-node
+fi
+
+echo "
 [mysql*]
 user root
 group wheel
@@ -359,43 +422,57 @@ guest_username=www
 " >> /etc/vsftpd/vusers/www
 echo "FTP server configured for user www with password $WWWPASS."
 
-
-### Nginx ###
-
-## TODO: switch to Nginx with Apache or Nginx with FPM
-
-
 ### Final and Startups ###
 chown www:www /var/lib/php/session
 chown -R www:www /home/www
 echo "chown www:www /var/lib/php/session" >> /etc/rc.local
-chkconfig --level 2345 mysqld on >/dev/null 2>&1
-chkconfig --level 2345 mysql on >/dev/null 2>&1
-chkconfig --level 2345 monit on
-chkconfig --level 2345 munin-node on
-chkconfig --level 2345 vsftpd on
+if [[ "$Nginx" == true ]]; then
+	chkconfig --level 123456 httpd of >/dev/null 2>&1
+	service httpd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
+	chkconfig --level 345 nginx on >/dev/null 2>&1
+	chkconfig --level 345 php-fpm on >/dev/null 2>&1
+	service nginx start 3>&1 4>&2 >>$BUILDLOG 2>&1
+	service php-fpm start 3>&1 4>&2 >>$BUILDLOG 2>&1
+else
+	chkconfig --level 345 httpd on >/dev/null 2>&1
+	service httpd start 3>&1 4>&2 >>$BUILDLOG 2>&1
+fi
+chkconfig --level 345 mysqld on >/dev/null 2>&1
+chkconfig --level 345 mysql on >/dev/null 2>&1
+chkconfig --level 345 monit on >/dev/null 2>&1
+chkconfig --level 345 munin-node on >/dev/null 2>&1
+chkconfig --level 345 vsftpd on >/dev/null 2>&1
 echo "Final configurations done."
-echo "Starting Apache, Monit, Munin, VsFTPd..."
-service httpd start 3>&1 4>&2 >>$BUILDLOG 2>&1
+echo "Starting Monit, Munin, VsFTPd..."
 service monit start 3>&1 4>&2 >>$BUILDLOG 2>&1
 service munin-node start 3>&1 4>&2 >>$BUILDLOG 2>&1
 service vsftpd start 3>&1 4>&2 >>$BUILDLOG 2>&1
+sudo -u munin /usr/bin/munin-cron 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Everything started."
 
 echo -e "\n*****************************************************************"
 echo -e "Webkit installed!\n"
 echo -e "Please copy all those information carefully:\n"
 echo -e "SSH: root / replace"
-echo -e "Apache: www / $WWWPASS"
+echo -e "User: www / $WWWPASS"
 echo -e "FTP: www / $WWWPASS"
 echo -e "MySQL: root / $SQLPASS"
 echo -e "Web: http://www.$DOMAIN"
 echo -e "Pma: http://pma.$DOMAIN / root / $SQLPASS"
 echo -e "Monit: http://monit.$DOMAIN / monit / $MONITPASS"
 echo -e "Munin: http://munin.$DOMAIN / munin / $MUNINPASS"
+if [[ "$Nginx" == true ]]; then
+	echo -e "PageSpeed: http://www.$DOMAIN/pagespeed_global_admin/"
+fi
 echo -e "\nVersions:\n"
-httpd -v
+if [[ "$Nginx" == true ]]; then
+	nginx -V
+else
+	httpd -V
+fi
+echo ""
 php -v
+echo ""
 mysql -V
 echo -e "\n*****************************************************************\n"
 
@@ -606,9 +683,9 @@ echo -e "\n*****************************************************************"
 echo -e "Installing EPEL and Aeris repos.."
 echo -e "*****************************************************************\n"
 
-yum install -y $URL/repos/epel-release-6-5.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-yum install -y $URL/repos/aeris-release-1.0-1.el6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-sed -i '/enabled\=1/a exclude\=nginx*,monit*' /etc/yum.repos.d/epel.repo 
+yum install -y $URL/repos/epel-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum install -y $URL/repos/aeris-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+sed -i '/enabled\=1/a exclude\=nginx*,monit*' /etc/yum.repos.d/epel.repo
 echo "EPEL and Aeris repos installed for usefull packages."
 echo "Disabling nginx and monit from EPEL for better version in Aeris."
 
@@ -765,7 +842,7 @@ function notify {
 	rm -f /root/centos6.sh
 	if [ -f /usr/bin/mutt ]; then
 		echo -e "A new server has been built. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- kj@aeris.pro
-		echo -e "\nAn email of the build as been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
+		echo -e "\nAn email of the build has been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
 		rm -f $BUILDLOG
 		rm -f /root/sent
 	else
@@ -800,8 +877,8 @@ if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == 
 		echo -e "IP: $IP\n"
 		echo -e "[1] Clean and optimize the OS"
 		echo -e "[2] Proceed with cPanel"
-		echo -e "[3] Proceed with LAMP 53/54/55/56"
-		echo -e "[4] Proceed with LEMP 53/54/55/56"
+		echo -e "[3] Proceed with LAMP/LEMP and PHP 53/54/55/56"
+		echo -e "[4] Proceed with "
 		echo -e "[5] Proceed with Zimbra"
 		echo -e "[6] Proceed with FreePBX\n"
 		echo -e "[0] Quit builder"
@@ -811,9 +888,9 @@ if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == 
 	    echo ""
 	    case $selection in
 			1 ) cleanup;enter ;;
-			2 ) cpanel;enter ;;
-		    3 ) lamp;enter ;;
-			6 ) freepbx;enter ;;
+			2 ) verifydep;cpanel;enter ;;
+		    3 ) verifydep;lamp;enter ;;
+			6 ) verifydep;freepbx;enter ;;
 			0 ) notify;exit ;;
 		    * ) echo "Please enter 1, 2, 3, 4, 5, 6 or 0"
 	    esac
