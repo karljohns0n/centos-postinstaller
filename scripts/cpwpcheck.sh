@@ -34,7 +34,7 @@ for vhost in `grep DocumentRoot /usr/local/apache/conf/httpd.conf|grep "public_h
 	done
 done
 
-
 echo -e "Here's the log of the cPanel WordPress daily checkup for `hostname`." | mutt -a $LOG -s "cPanel WordPress daily checkup report for: `hostname`" -- $EMAILS
+
 rm -f /root/sent
 rm -f $LOG
