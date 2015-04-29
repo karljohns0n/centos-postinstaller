@@ -5,10 +5,16 @@
 # by Karl Johnson
 # kjohnson@aerisnetwork.com
 #
-# Version 1.0 - 2014/06/13
+# Version 1.1 - 2015/04/29
 #
 
 LOG="/tmp/cpwpcheck.log"
+EMAILS="kj@aeris.pro kjohnson@aerisnetwork.com" ## Separate with space
+
+if [ ! -f /usr/bin/mutt ]; then
+  echo "Mutt is not in /usr/bin, please check"
+  exit 1
+fi
 
 rm -f $LOG
 
@@ -22,13 +28,13 @@ for vhost in `grep DocumentRoot /usr/local/apache/conf/httpd.conf|grep "public_h
 		wpdir=`echo "$wpverfile" | sed "s/\/wp-includes\/version.php//"`
 		echo -e "\n\nFound WP in : $wpdir" 3>&1 4>&2 >>$LOG 2>&1
 		echo -e "WP version is: $(grep '^\$wp_version' "$wpverfile" | cut -d "'" -f 2)" 3>&1 4>&2 >>$LOG 2>&1
-		#chmod 600 "$wpdir/wp-config.php"
+		chmod 600 "$wpdir/wp-config.php"
 		wpconfigfile=$(ls -al "$wpdir/wp-config.php" |awk '{print $1,$3,$4}')
 		echo -e "Configured wp-config permissions to 600: $wpconfigfile" 3>&1 4>&2 >>$LOG 2>&1
 	done
 done
 
 
-echo -e "Here's the log of the cPanel WordPress daily checkup for `hostname`." | mutt -a "$LOG" -s "cPanel WordPress daily checkup report for: `hostname`" -- kj@aeris.pro kj@aerisnet.ca
+echo -e "Here's the log of the cPanel WordPress daily checkup for `hostname`." | mutt -a $LOG -s "cPanel WordPress daily checkup report for: `hostname`" -- $EMAILS
 rm -f /root/sent
 rm -f $LOG
