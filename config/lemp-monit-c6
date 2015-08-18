@@ -1,0 +1,42 @@
+set logfile /var/log/monit
+
+## Nginx
+
+check process nginx with pidfile /var/run/nginx.pid
+start program = "/etc/init.d/nginx start"
+stop program = "/etc/init.d/nginx stop"
+mode active
+if children > 250 then restart
+if loadavg(5min) greater than 10 for 8 cycles then restart
+if 3 restarts within 5 cycles then timeout
+
+## PHP-FPM
+
+check process php-fpm.www with pidfile /var/run/php-fpm/php-fpm.pid
+start program = "/etc/init.d/php-fpm start"
+stop program  = "/etc/init.d/php-fpm stop"
+if failed host localhost port 80 protocol http
+   and request '/ping'
+   with timeout 20 seconds for 5 cycles
+   then restart
+if 3 restarts within 5 cycles then timeout
+depends on nginx
+
+## MySQL
+
+check process mysqld with pidfile /var/run/mysqld/mysqld.pid
+start program = "/etc/init.d/mysqld start"
+stop program = "/etc/init.d/mysqld stop"
+mode active
+if failed host 127.0.0.1 port 3306 then restart
+if 5 restarts within 5 cycles then timeout
+
+## Memcached
+
+check process memcached with pidfile /var/run/memcached/memcached.pid
+start program = "/etc/init.d/memcached start"
+stop program = "/etc/init.d/memcached stop"
+if failed host 127.0.0.1 port 11211 protocol MEMCACHE then restart
+if cpu > 70% for 2 cycles then alert
+if cpu > 98% for 5 cycles then restart
+if 2 restarts within 3 cycles then timeout

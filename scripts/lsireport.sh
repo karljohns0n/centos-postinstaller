@@ -1,21 +1,17 @@
 #!/bin/sh
 #
-# LSI megaraid and megasas report
+# LSI MegaRAID report for device and hard drives health. Compatible with SATA and SAS.
 #
 # by Karl Johnson
-# kjohnson@aerisnetwork.com
+# karljohnson.it@gmail.com
 #
-# Version 1.2 - 2014/09/24
+# Version 1.2
 #
-# You should add a cron for this, exemple:
+# You should add a cron for this, such as:
 # 0 7 * * 0 /bin/bash /opt/megeraid/lsireport.sh > /dev/null 2>&1
 #
-#
-
-### Global stuff
 
 email="report@aerisnetwork.com"
-
 
 if [ -f /opt/MegaRAID/MegaCli/MegaCli64 ]; then
     cli="/opt/MegaRAID/MegaCli/MegaCli64"
@@ -35,6 +31,7 @@ $cli -AdpAllInfo -aALL > /tmp/AdpAllInfo.txt
 numarrays=`grep "Virtual Drives" /tmp/AdpAllInfo.txt|awk '{print $4}'`
 LSILOG="/tmp/lsireport.log"
 
+
 ### Basic information
 
 echo -e "*****************************************************\n
@@ -42,6 +39,7 @@ LSI report for: `hostname`\n
 Product: `grep "Product Name" /tmp/AdpAllInfo.txt|awk '{print $4,$5,$6,$7,$8}'`
 Firmware version: `grep "FW Version" /tmp/AdpAllInfo.txt|awk '{print $4}'`
 Driver version: `/sbin/modinfo megaraid_sas|grep "version:"|grep -v srcversion|awk '{print $2}'`\n" 3>&1 4>&2 >>$LSILOG 2>&1
+
 
 ### Status of all arrays
 

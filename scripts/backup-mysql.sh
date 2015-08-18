@@ -3,13 +3,12 @@
 # MySQL Backup and Optimize - All Databases
 #
 # by Karl Johnson
-# kjohnson@aerisnetwork.com
+# karljohnson.it@gmail.com
 #
 # Version 1.1
 #
-# You should add a cron for this, exemple:
+# You should add a daily cron for this, such as:
 # 0 3 * * * /opt/scripts/backup-mysql.sh > /dev/null 2>&1
-#
 #
 
 ### System Setup ###

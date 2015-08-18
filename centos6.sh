@@ -1,14 +1,17 @@
 #!/bin/sh
 #
-# CentOS 6 epic Cleaner and Installer
-# By kjohnson@aerisnetwork.com
+# CentOS 6 cleaner and installer
+# By karljohnson.it@gmail.com
 # 
-# v2.34 2014-12-04
+# v1.35
 
-######## Global variables ########
+### Global variables ###
 
+SSHKEY=""
 URL="http://build.aerisnetwork.com"
 BUILDLOG="/tmp/build.log"
+EMAILS="kjohnson@aerisnetwork.com" ## Separate each email with space
+
 
 ### IP ###
 
@@ -27,42 +30,80 @@ fi
 
 function enter () {
 	echo ""
-	read -sn 1 -p "All done! Press any key to continue..."
+	read -sn 1 -p "Press any key to continue..."
 }
 
+################################################################################################
+##################################### Progress function ########################################
+
+### Progress code from haikieu @ Github ###
+
+function delay () {
+    sleep 0.2;
+}
+
+CURRENT_PROGRESS=0
+function progress () {
+    PARAM_PROGRESS=$1;
+    PARAM_PHASE=$2;
+
+    if [ $CURRENT_PROGRESS -le 0 -a $PARAM_PROGRESS -ge 0 ]  ; then echo -ne "[..........................] (0%)  $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 5 -a $PARAM_PROGRESS -ge 5 ]  ; then echo -ne "[#.........................] (5%)  $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 10 -a $PARAM_PROGRESS -ge 10 ]; then echo -ne "[##........................] (10%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 15 -a $PARAM_PROGRESS -ge 15 ]; then echo -ne "[###.......................] (15%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 20 -a $PARAM_PROGRESS -ge 20 ]; then echo -ne "[####......................] (20%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 25 -a $PARAM_PROGRESS -ge 25 ]; then echo -ne "[#####.....................] (25%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 30 -a $PARAM_PROGRESS -ge 30 ]; then echo -ne "[######....................] (30%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 35 -a $PARAM_PROGRESS -ge 35 ]; then echo -ne "[#######...................] (35%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 40 -a $PARAM_PROGRESS -ge 40 ]; then echo -ne "[########..................] (40%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 45 -a $PARAM_PROGRESS -ge 45 ]; then echo -ne "[#########.................] (45%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 50 -a $PARAM_PROGRESS -ge 50 ]; then echo -ne "[##########................] (50%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 55 -a $PARAM_PROGRESS -ge 55 ]; then echo -ne "[###########...............] (55%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 60 -a $PARAM_PROGRESS -ge 60 ]; then echo -ne "[############..............] (60%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 65 -a $PARAM_PROGRESS -ge 65 ]; then echo -ne "[#############.............] (65%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 70 -a $PARAM_PROGRESS -ge 70 ]; then echo -ne "[###############...........] (70%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 75 -a $PARAM_PROGRESS -ge 75 ]; then echo -ne "[#################.........] (75%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 80 -a $PARAM_PROGRESS -ge 80 ]; then echo -ne "[####################......] (80%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 85 -a $PARAM_PROGRESS -ge 85 ]; then echo -ne "[#######################...] (90%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 90 -a $PARAM_PROGRESS -ge 90 ]; then echo -ne "[##########################] (95%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 99 -a $PARAM_PROGRESS -ge 99 ]; then echo -ne "[##########################] (100%) $PARAM_PHASE \r"  ; delay; fi;
+    if [ $CURRENT_PROGRESS -le 100 -a $PARAM_PROGRESS -ge 100 ]; then echo -ne "$PARAM_PHASE \n\r" ; delay; fi;
+
+    CURRENT_PROGRESS=$PARAM_PROGRESS;
+}
 
 ################################################################################################
-######################################  Verify deps ############################################
+####################################### Verify deps ############################################
 
 function verifydep () {
 
-	echo -e "\nChecking global dependencies before proceeding..\n"
+	echo -ne "\nChecking global dependencies before proceeding..."
 
 	## Verify Aeris and EPEL Repos
 
 	if [ ! -f /etc/yum.repos.d/aeris.repo ]; then
     	yum install -y $URL/repos/aeris-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-    	echo "Aeris yum repository installed. Are you sure cleanup script has been run first?"
+    	echo "Aeris repository installed. Are you sure cleanup script (1) has been run first?"
 	fi
 
 	if [ ! -f /etc/yum.repos.d/epel.repo ]; then
     	yum install -y $URL/repos/epel-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-    	echo "EPEL yum repository installed. Are you sure cleanup script has been run first?"
+    	echo "EPEL repository installed. Are you sure cleanup script (1) has been run first?"
 	fi
 
-	## Vérify opt directories
+	## Verify opt directories
 
 	if [ ! -d /opt/src ] ;then
 		mkdir /opt/src
-		echo "Directory /opt/src created. Are you sure cleanup script has been run first?"
+		echo "Directory /opt/src created. Are you sure cleanup script (1) has been run first?"
 	fi
 
 	if [ ! -d /opt/scripts ] ;then
 		mkdir /opt/scripts
-		echo "Directory /opt/scripts created. Are you sure cleanup script has been run first?"
+		echo "Directory /opt/scripts created. Are you sure cleanup script (1) has been run first?"
 	fi
 
-	echo -e "Global dependencies checkup done. Proceeding..\n"
+	echo -ne " Done! Proceeding...\n"
 }
 
 
@@ -71,16 +112,16 @@ function verifydep () {
 
 function cpanel {
 
-### cpanel installation ###
+### cPanel installation ###
 
 pushd /root
 wget -N http://layer1.cpanel.net/latest 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Installing cPanel.. this will take about 20 minutes.."
 sh latest 3>&1 4>&2 >>$BUILDLOG 2>&1
 chmod 777 /var/run/screen
-echo "cPanel has been installed."
+echo -e "\n\ncPanel has been installed."
 
-### alias ###
+### Aliases ###
 
 echo "
 alias apachetop=\"/opt/scripts/apache-top.py -u http://127.0.0.1/whm-server-status\"
@@ -90,7 +131,7 @@ alias htop=\"htop -C\"
 " >> /etc/profile
 echo "Custom alias have been installed."
 
-### basic mysql config ###
+### basic MySQL configuration ###
 
 mv /etc/my.cnf /etc/my.cnf.origin
 touch /var/log/mysqld-slow.log
@@ -105,7 +146,7 @@ bind-address = 127.0.0.1
 query-cache-type = 1
 query-cache-size = 32M
 query_cache_limit = 4M
-table_cache = 1024  ### replace table_open_cache= if MySQL 5.6
+#table_cache = 1024  ### replace with table_open_cache= if MySQL 5.6
 open_files_limit = 2048
 max_connections = 75
 thread_cache_size = 2
@@ -123,9 +164,9 @@ slow_query_log = 1
 slow_query_log_file = /var/log/mysqld-slow.log
 long_query_time = 15
 " > /etc/my.cnf
-echo "MySQL has been optimized."
+echo "MySQL has been basically optimized."
 
-### other stuff ###
+### Other stuff ###
 
 wget -O /opt/scripts/apache-top.py $URL/scripts/apache-top.py 3>&1 4>&2 >>$BUILDLOG 2>&1
 chmod +x /opt/scripts/apache-top.py
@@ -137,103 +178,77 @@ rm -f /root/latest /root/installer.lock /root/php.ini.new /root/php.ini.orig
 echo -e "\n*****************************************************************\n"
 echo -e "cPanel is now installed. You can browse the following link"
 echo -e "http://$IP:/whm"
-echo -e "Please check /etc/my.cnf before doing /scripts/restartsrv_mysql ; tail -f /var/log/mysqld.log"
+echo -e "Please check /etc/my.cnf before doing /scripts/restartsrv_mysql ; tailf /var/log/mysqld.log"
+echo -e "It's also important to recompile Apache/PHP. Use /scripts/easyapache"
 echo -e "\n*****************************************************************\n"
 
 }
 
 
 ################################################################################################
-############################### Option 3 LAMP and LEMP Startup #################################
+################################### Option 3 LEMP Startup ######################################
 
-function lamp {
+function lemp {
 
 WWWPASS=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
 SQLPASS=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
 MONITPASS=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
-MUNINPASS=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
 PMA=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8`
 MariaDB=false
-Nginx=false
 
 ### Domain configuration ###
 
 echo -e "\n*****************************************************************"
-echo -e "Apache / Nginx Webkit preparation"
-echo -e "What is the main domain? Will be used to install Web/PMA/Munin/Monit/Staging\n"
+echo -e "Nginx stack installation"
+echo -e "What is the main domain? Important, it will be used to setup Web/PMA/Monit/Staging\n"
 read -p "Enter the domain : " -e DOMAIN
-read -p "Do you want to use Nginx and PHP-FPM instead of Apache? (N/y): " -e Nginx_INPUT
-if [ "$Nginx_INPUT" == "y" ] || [ "$Nginx_INPUT" == "Y" ]; then
-		Nginx=true
-fi
-echo -e "\nChoose PHP version: builtin|53|54|55|56"
-echo -e "Built-in (default) will also use built-in MySQL. Others use latest PHP with latest MySQL 5.6 or MariaDB 10"
-echo -e "Nginx note: built-in PHP not supported.\n"
+echo -e "\nChoose PHP version between 53|54|55|56 (56 is default)"
 read -p "Enter PHP version: " -e PHPVERSION
 
-if [ "$PHPVERSION" == "53" ] || [ "$PHPVERSION" == "54" ] || [ "$PHPVERSION" == "55" ] || [ "$PHPVERSION" == "56" ]; then
-	echo -e "\nThis PHP version allows MariaDB support."
-	read -p "Do you want to switch MySQL 5.6 for MariaDB 10? (N/y): " -e MariaDB_INPUT
-	if [ "$MariaDB_INPUT" == "y" ] || [ "$MariaDB_INPUT" == "Y" ]; then
-		MariaDB=true
-	fi
+if [ "$PHPVERSION" != "53" ] && [ "$PHPVERSION" != "54" ] && [ "$PHPVERSION" != "55" ] && [ "$PHPVERSION" != "56" ]; then
+	PHPVERSION="56"
 fi
 
-echo -e "\nProceeding with $DOMAIN with PHP $PHPVERSION...\n"
+read -p "Do you want to switch MySQL 5.6 for MariaDB 10? (N/y): " -e MariaDB_INPUT
+if [ "$MariaDB_INPUT" == "y" ] || [ "$MariaDB_INPUT" == "Y" ]; then
+	MariaDB=true
+fi
 
-echo -e "\n*****************************************************************"
-echo -e "Basic setup for $DOMAIN.."
-echo -e "*****************************************************************\n"
+echo -e "\nProceeding with domain $DOMAIN and PHP $PHPVERSION...\n"
+
+### Required directories ###
+
+progress 0 "Basic setup for $DOMAIN..                           "
 
 mkdir -p /home/www/$DOMAIN
 mkdir /home/www/$DOMAIN/public_html
 mkdir /home/www/$DOMAIN/subdomains
 mkdir /home/www/$DOMAIN/subdomains/staging
 mkdir /home/www/$DOMAIN/subdomains/monit
-ln -s /var/www/html/munin /home/www/$DOMAIN/subdomains/munin
-echo -e "Directories for $DOMAIN and services are created."
 
+### PHP version ###
 
-echo -e "\n*****************************************************************"
-echo -e "Installing all PHP modules and SQL server.."
-echo -e "*****************************************************************\n"
-
-yum install -y db4-utils monit munin munin-node vsftpd 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo -e "Default packages installed."
-
-## Notes: No ionCube module in IUS PHP 5.5 and 5.6 repo as of 2014/11/18
+progress 5 "Installing all PHP$PHPVERSION modules...            "
 
 if [ $PHPVERSION == "53" ]; then
 	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "IUScommunity repo installed."
 	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
-	yum install -y php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcache php53u-pecl-memcached php53u-soap php53u-tidy php53u-xml php53u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "Latest PHP 5.3 has been installed."  	
+	yum --enablerepo ius-archive install -y php53u php53u-cli php53u-common php53u-devel php53u-enchant php53u-gd php53u-imap php53u-ioncube-loader php53u-mbstring php53u-mcrypt php53u-mysql php53u-pdo php53u-pear php53u-pecl-memcache php53u-pecl-memcached php53u-soap php53u-tidy php53u-xml php53u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
 elif [ $PHPVERSION == "54" ]; then
 	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "IUScommunity repo installed."
 	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
 	yum install -y php54 php54-cli php54-common php54-devel php54-enchant php54-gd php54-imap php54-ioncube-loader php54-mbstring php54-mcrypt php54-mysql php54-pdo php54-pear php54-pecl-memcache php54-pecl-memcached php54-soap php54-tidy php54-xml php54-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "Latest PHP 5.4 has been installed."
 elif [ $PHPVERSION == "55" ]; then
 	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "IUScommunity repo installed."
 	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
-	yum install -y php55u php55u-cli php55u-common php55u-devel php55u-enchant php55u-gd php55u-imap php55u-ioncube-loader php55u-mbstring php55u-mcrypt php55u-mysql php55u-pdo php55u-pear php55u-pecl-memcache php55u-pecl-memcached php55u-soap php55u-tidy php55u-xml php55u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-    echo -e "Latest PHP 5.5 has been installed."
+	yum install -y php55u php55u-cli php55u-common php55u-devel php55u-enchant php55u-gd php55u-imap php55u-ioncube-loader php55u-opcache php55u-mbstring php55u-mcrypt php55u-mysql php55u-pdo php55u-pear php55u-pecl-memcache php55u-pecl-memcached php55u-soap php55u-tidy php55u-xml php55u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
 elif [ $PHPVERSION == "56" ]; then
 	yum install -y $URL/repos/ius-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "IUS repo installed."
 	yum install -y yum-plugin-replace 3>&1 4>&2 >>$BUILDLOG 2>&1
-	yum install -y php56u php56u-cli php56u-common php56u-devel php56u-enchant php56u-gd php56u-imap php56u-ioncube-loader php56u-mbstring php56u-mcrypt php56u-mysql php56u-pdo php56u-pear php56u-pecl-memcache php56u-pecl-memcached php56u-soap php56u-tidy php56u-xml php56u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-    echo -e "Latest PHP 5.6 has been installed."    
-else
-	yum install -y mysql mysql-server php php-cli php-common php-devel php-enchant php-gd php-imap php-ioncube-loader php-mbstring php-mcrypt php-mysql php-pdo php-pear php-pecl-memcache php-soap php-tidy php-xml php-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "Built-in PHP has been installed."
+	yum install -y php56u php56u-cli php56u-common php56u-devel php56u-enchant php56u-gd php56u-imap php56u-ioncube-loader php56u-opcache php56u-mbstring php56u-mcrypt php56u-mysql php56u-pdo php56u-pear php56u-pecl-memcache php56u-pecl-memcached php56u-soap php56u-tidy php56u-xml php56u-xmlrpc 3>&1 4>&2 >>$BUILDLOG 2>&1
 fi
 
-
-## Installating MySQL 5.6 or MariaDB 10
+### MariaDB 10 or MySQL 5.6 ###
 
 if [[ "$MariaDB" == true ]]; then
 	echo "[mariadb]
@@ -241,162 +256,115 @@ name = MariaDB
 baseurl = http://yum.mariadb.org/10.0/centos6-amd64
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
-	echo -e "MariaDB repo installed."
+	progress 20 "Installing MariaDB 10...                            "
 	yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo -e "Latest MariaDB 10 has been installed."
 else
-	if [ "$PHPVERSION" == "53" ] || [ "$PHPVERSION" == "54" ] || [ "$PHPVERSION" == "55" ] || [ "$PHPVERSION" == "56" ]; then
-		yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
-		yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
-		yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
-		echo -e "Latest MySQL 5.6 have been installed. Consider disabling performance_schema and bind on 127.0.0.1."
-	else
-		yum install -y mysql mysql-server
-		echo -e "Built-in mySQL has been installed."
-	fi
+	progress 20 "Installing MySQL 5.6...                             "
+	yum install -y mysql 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum replace -y mysql --replace-with mysql56u 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum install -y mysql56u-server 3>&1 4>&2 >>$BUILDLOG 2>&1
 fi
 
-echo -e "\n*****************************************************************"
-echo -e "Installing Web server.."
-echo -e "*****************************************************************\n"
+### Nginx-more and PHP-FPM ###
 
-if [[ "$Nginx" == true ]]; then
-	yum install -y nginx-more httpd-devel 3>&1 4>&2 >>$BUILDLOG 2>&1
-	if [ $PHPVERSION == "53" ]; then
-		yum install -y php53u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	elif [ $PHPVERSION == "54" ]; then
-		yum install -y php54-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	elif [ $PHPVERSION == "55" ]; then
-		yum install -y php55u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	elif [ $PHPVERSION == "56" ]; then
-		yum install -y php56u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
-	fi
-else
-	yum install -y httpd httpd-devel 3>&1 4>&2 >>$BUILDLOG 2>&1
+progress 35 "Installing Nginx-more and PHP-FPM...                "
+
+yum install -y nginx-more httpd-devel 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+if [ $PHPVERSION == "53" ]; then
+	yum --enablerepo ius-archive install -y php53u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+elif [ $PHPVERSION == "54" ]; then
+	yum install -y php54-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+elif [ $PHPVERSION == "55" ]; then
+	yum install -y php55u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+elif [ $PHPVERSION == "56" ]; then
+	yum install -y php56u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 fi
 
-echo -e "\n*****************************************************************"
-echo -e "Adding Web user, set password and permissions.."
-echo -e "*****************************************************************\n"
+### Web user ###
+
+progress 45 "Adding Web user...                                   "
 
 adduser www 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo $WWWPASS | passwd www --stdin
+echo $WWWPASS | passwd www --stdin 3>&1 4>&2 >>$BUILDLOG 2>&1
 chown -R www:www /home/www
 chmod 755 /home/www
-echo -e "User www added with password $WWWPASS."
 
-echo -e "\n*****************************************************************"
-echo -e "Optimizing services configurations.."
-echo -e "*****************************************************************\n"
+### Required packages ###
 
+progress 50 "Installing Monit, VsFTPd, Memcached...              "
 
-### Apache / Nginx ###
-if [[ "$Nginx" == true ]]; then
-	wget -O /etc/nginx/conf.d/vhosts/$DOMAIN.conf $URL/config/vhost-nginx-centos6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
-	sed -i "s/replaceme/$DOMAIN/g" /etc/nginx/conf.d/vhosts/$DOMAIN.conf
-	sed -i "s/\#include\ conf.d\/custom\/aerisnetwork\-ips/include\ conf.d\/custom\/aerisnetwork\-ips/g" /etc/nginx/conf.d/custom/admin-ips.conf 
-	echo -e "Nginx configured on port 80 for $DOMAIN. Aeris admin IPs allowed."
-	sed -i "s/apache/www/g" /etc/php-fpm.d/www.conf
-	sed -i "s/\;ping\./ping\./g" /etc/php-fpm.d/www.conf
-	sed -i "s/\;pm.status/pm.status/g" /etc/php-fpm.d/www.conf
-	chown www:root /var/log/php-fpm
-	echo -e "PHP-FPM configured."
-else
-	mv /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.origin
-	wget -O /etc/httpd/conf/httpd.conf $URL/config/vhost-httpd22-centos6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
-	sed -i "s/replaceme/$DOMAIN/g" /etc/httpd/conf/httpd.conf
-	echo -e "Apache configured on port 80 for $DOMAIN."
+yum install -y db4-utils monit vsftpd memcached 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+### Optimizing services configurations ###
+
+progress 60 "Configuring and optimizing services...               "
+
+### Nginx ###
+
+wget -O /etc/nginx/conf.d/vhosts/$DOMAIN.conf $URL/config/lemp-nginx-c6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
+sed -i "s/replace.me/$DOMAIN/g" /etc/nginx/conf.d/vhosts/$DOMAIN.conf
+echo "<?php echo 'Current PHP version: ' . phpversion(); ?>" > /home/www/$DOMAIN/public_html/index.php
+if [ "$PHPVERSION" -ge "55" ]; then
+	wget -O /usr/share/nginx/html/opcache.php https://raw.githubusercontent.com/amnuts/opcache-gui/master/index.php 3>&1 4>&2 >>$BUILDLOG 2>&1
 fi
+wget -O /usr/share/nginx/html/ioncubetest.php $URL/files/ioncubetest.php 3>&1 4>&2 >>$BUILDLOG 2>&1 ### provided by Andrew Collington @ Github
 
-### MySQL ###
-if [[ "$MariaDB" == true ]]; then
-	/etc/init.d/mysql start 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo "Giving 3s to start MariaDB..."
-else
-	/etc/init.d/mysqld start 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo "Giving 3s to start MySQL..."
-fi
-sleep 3
-/usr/bin/mysqladmin -u root password $SQLPASS 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo "Setting root password for SQL."
-/usr/bin/mysqladmin -u root -p$SQLPASS -f drop test 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo "Dropping database test."
-echo "
-[client]
-user=root
-password=$SQLPASS
-">/root/.my.cnf
-cp /root/.my.cnf /home/www/.my.cnf
-chown www:www /home/www/.my.cnf
-mysql -e "GRANT ALL ON *.* TO root@'127.0.0.1' IDENTIFIED BY '$SQLPASS';"
-mysql -e "FLUSH PRIVILEGES;"
-echo -e "SQL server configured with root password $SQLPASS."
+### PHP-FPM
 
+sed -i "s/user\ \=\ apache/user\ \=\ www/g" /etc/php-fpm.d/www.conf
+sed -i "s/group\ \=\ apache/group\ \=\ www/g" /etc/php-fpm.d/www.conf
+sed -i "s/user\ \=\ php\-fpm/user\ \=\ www/g" /etc/php-fpm.d/www.conf
+sed -i "s/group\ \=\ php\-fpm/group\ \=\ www/g" /etc/php-fpm.d/www.conf
+sed -i "s/\;ping\./ping\./g" /etc/php-fpm.d/www.conf
+sed -i "s/\;pm.status/pm.status/g" /etc/php-fpm.d/www.conf
+sed -i "s/\;date.timezone\ \=/date.timezone\ \= America\/Montreal/g" /etc/php.ini
+chown www:root /var/log/php-fpm
+
+### Memcached ###
+
+sed -i "s/session.save_handler\ \=\ files/session.save_handler\ \=\ memcached/g" /etc/php.ini
+sed -i "/session.save_handler\ \=\ memcached/a session.save_path\ =\ \"127.0.0.1\:11211\"" /etc/php.ini
+sed -i "s/session.save_path\ \=\ \"\/var\/lib\/php\/session\"/\;session.save_path\ \=\ \"\/var\/lib\/php\/session\"/g" /etc/php.ini
+sed -i "s/\=\ files/\=\ memcached/g" /etc/php-fpm.d/www.conf
+sed -i "s/\=\ \/var\/lib\/php\-fpm\/session/\=\ \"127.0.0.1\:11211\"/g" /etc/php-fpm.d/www.conf
+sed -i "s/\=\ \/var\/lib\/php\/session/\=\ \"127.0.0.1\:11211\"/g" /etc/php-fpm.d/www.conf
+sed -i "s/CACHESIZE\=\"64\"/CACHESIZE\=\"128\"/g" /etc/sysconfig/memcached
+sed -i "s/OPTIONS\=\"\"/OPTIONS\=\"-l\ 127.0.0.1\"/g" /etc/sysconfig/memcached
+
+### Allow Aeris IPs for nginx restrictions ###
+
+sed -i "s/\#include\ conf.d\/custom\/aerisnetwork\-ips/include\ conf.d\/custom\/aerisnetwork\-ips/g" /etc/nginx/conf.d/custom/admin-ips.conf 
 
 ### Monit ###
-echo "Monit monitoring" > /var/www/html/monit.html
-echo "Default" > /var/www/html/index.html
-echo "<?php echo 'Current PHP version: ' . phpversion(); ?>" > /home/www/$DOMAIN/public_html/index.php
+
+echo "monit" > /usr/share/nginx/html/monit.html
 sed -i "s/use\ address\ localhost/\#use\ address\ localhost/g" /etc/monitrc
 sed -i "s/allow\ monit\:monit/allow\ monit\:$MONITPASS/g" /etc/monitrc
-echo -e "Monit listening on port 2812."
-
+wget -O /etc/monit.d/services $URL/config/lemp-monit-c6 3>&1 4>&2 >>$BUILDLOG 2>&1
+if [[ "$MariaDB" == true ]]; then
+	sed -i "s/init.d\/mysqld/init.d\/mysql/g" /etc/monit.d/services
+	sed -i "s/\/var\/run\/mysqld\/mysqld.pid/\/var\/lib\/mysql\/`hostname`.pid/g" /etc/monit.d/services
+fi
 
 ### PMA ###
-wget -O /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz $URL/files/phpmyadmin.tar.gz 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+wget -O /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz https://files.phpmyadmin.net/phpMyAdmin/4.4.13.1/phpMyAdmin-4.4.13.1-english.tar.gz 3>&1 4>&2 >>$BUILDLOG 2>&1
 tar -zxf /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz -C /home/www/$DOMAIN/subdomains 3>&1 4>&2 >>$BUILDLOG 2>&1
 rm -f /home/www/$DOMAIN/subdomains/phpmyadmin.tar.gz
 mv /home/www/$DOMAIN/subdomains/phpMyAdmin* /home/www/$DOMAIN/subdomains/pma
 echo "<?php
 \$cfg['blowfish_secret'] = '$PMA';
- 
-\$i=0;
-\$i++;
-\$cfg['Servers'][\$i]['auth_type']     = 'cookie';
+\$cfg['Servers'][1]['auth_type'] = 'cookie';
+\$cfg['Servers'][1]['host'] = 'localhost';
+\$cfg['Servers'][1]['connect_type'] = 'tcp';
+\$cfg['Servers'][1]['compress'] = false;
+\$cfg['Servers'][1]['AllowNoPassword'] = false;
 ?>" > /home/www/$DOMAIN/subdomains/pma/config.inc.php
 rm -rf /home/www/$DOMAIN/subdomains/pma/setup
-echo -e "PhpMyAdmin installed with root $SQLPASS. Make sure to keep it updated."
-
-
-### Munin ###
-sed -i "s/\[localhost\]/\[$DOMAIN\]/g" /etc/munin/munin.conf
-pushd /etc/munin/plugins 3>&1 4>&2 >>$BUILDLOG 2>&1
-find /etc/munin/plugins -exec unlink {} \; >/dev/null 2>&1
-ln -s /usr/share/munin/plugins/cpu /etc/munin/plugins/cpu
-ln -s /usr/share/munin/plugins/df /etc/munin/plugins/df
-ln -s /usr/share/munin/plugins/load /etc/munin/plugins/load
-ln -s /usr/share/munin/plugins/memory /etc/munin/plugins/memory
-ln -s /usr/share/munin/plugins/mysql_queries /etc/munin/plugins/mysql_queries
-ln -s /usr/share/munin/plugins/mysql_threads /etc/munin/plugins/mysql_threads
-ln -s /usr/share/munin/plugins/mysql_slowqueries /etc/munin/plugins/mysql_slowqueries
-ln -s /usr/share/munin/plugins/memcached_ /etc/munin/plugins/memcached_bytes
-ln -s /usr/share/munin/plugins/memcached_ /etc/munin/plugins/memcached_counters
-ln -s /usr/share/munin/plugins/memcached_ /etc/munin/plugins/memcached_rates
-if [[ "$Nginx" == true ]]; then
-	ln -s /usr/share/munin/plugins/nginx_status /etc/munin/plugins/nginx_status
-	ln -s /usr/share/munin/plugins/nginx_request /etc/munin/plugins/nginx_request
-else
-	ln -s /usr/share/munin/plugins/apache_accesses /etc/munin/plugins/apache_accesses
-	ln -s /usr/share/munin/plugins/apache_volume /etc/munin/plugins/apache_volume
-	echo "
-[apache_*]
-env.url   http://127.0.0.1:%d/server-status?auto
-env.ports 80
-" >> /etc/munin/plugin-conf.d/munin-node
-fi
-
-echo "
-[mysql*]
-user root
-group wheel
-env.mysqladmin /usr/bin/mysqladmin
-env.mysqlopts --defaults-extra-file=/root/.my.cnf
-" >> /etc/munin/plugin-conf.d/munin-node
-pushd /root 3>&1 4>&2 >>$BUILDLOG 2>&1
-htpasswd -b -c /var/www/html/munin/.htpasswd munin $MUNINPASS
-echo -e "Munin configured with password $MUNINPASS."
 
 ### VsFTPd ###
+
 sed -i "s/anonymous_enable=YES/anonymous_enable=NO/g" /etc/vsftpd/vsftpd.conf 
 sed -i "s/\#chroot_local_user=YES/chroot_local_user=YES/g" /etc/vsftpd/vsftpd.conf 
 sed -i "s/pam_service_name=vsftpd/\#pam_service_name=vsftpd/g" /etc/vsftpd/vsftpd.conf
@@ -420,56 +388,71 @@ download_enable=YES
 write_enable=YES
 guest_username=www
 " >> /etc/vsftpd/vusers/www
-echo "FTP server configured for user www with password $WWWPASS."
+
+### SQL server ###
+
+progress 70 "Starting SQL server and configuring...              "
+
+if [[ "$MariaDB" == true ]]; then
+	/etc/init.d/mysql start 3>&1 4>&2 >>$BUILDLOG 2>&1
+else
+	/etc/init.d/mysqld start 3>&1 4>&2 >>$BUILDLOG 2>&1
+fi
+sleep 3
+/usr/bin/mysqladmin -u root password $SQLPASS 3>&1 4>&2 >>$BUILDLOG 2>&1
+/usr/bin/mysqladmin -u root -p$SQLPASS -f drop test 3>&1 4>&2 >>$BUILDLOG 2>&1
+echo "
+[client]
+user=root
+password=$SQLPASS
+">/root/.my.cnf
+cp /root/.my.cnf /home/www/.my.cnf
+chown www:www /home/www/.my.cnf
+mysql -e "GRANT ALL ON *.* TO root@'127.0.0.1' IDENTIFIED BY '$SQLPASS';"
+mysql -e "FLUSH PRIVILEGES;"
 
 ### Final and Startups ###
+
+progress 85 "Starting all services...                            "
+
 chown www:www /var/lib/php/session
 chown -R www:www /home/www
 echo "chown www:www /var/lib/php/session" >> /etc/rc.local
-if [[ "$Nginx" == true ]]; then
-	chkconfig --level 123456 httpd of >/dev/null 2>&1
-	service httpd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
-	chkconfig --level 345 nginx on >/dev/null 2>&1
-	chkconfig --level 345 php-fpm on >/dev/null 2>&1
-	service nginx start 3>&1 4>&2 >>$BUILDLOG 2>&1
-	service php-fpm start 3>&1 4>&2 >>$BUILDLOG 2>&1
-else
-	chkconfig --level 345 httpd on >/dev/null 2>&1
-	service httpd start 3>&1 4>&2 >>$BUILDLOG 2>&1
-fi
+chkconfig --level 123456 httpd off >/dev/null 2>&1
+chkconfig --level 345 nginx on >/dev/null 2>&1
+chkconfig --level 345 memcached on >/dev/null 2>&1
 chkconfig --level 345 mysqld on >/dev/null 2>&1
 chkconfig --level 345 mysql on >/dev/null 2>&1
-chkconfig --level 345 monit on >/dev/null 2>&1
-chkconfig --level 345 munin-node on >/dev/null 2>&1
 chkconfig --level 345 vsftpd on >/dev/null 2>&1
-echo "Final configurations done."
-echo "Starting Monit, Munin, VsFTPd..."
-service monit start 3>&1 4>&2 >>$BUILDLOG 2>&1
-service munin-node start 3>&1 4>&2 >>$BUILDLOG 2>&1
+chkconfig --level 345 php-fpm on >/dev/null 2>&1
+chkconfig --level 345 monit on >/dev/null 2>&1
+service httpd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
+service memcached start 3>&1 4>&2 >>$BUILDLOG 2>&1
+service nginx start 3>&1 4>&2 >>$BUILDLOG 2>&1
 service vsftpd start 3>&1 4>&2 >>$BUILDLOG 2>&1
-sudo -u munin /usr/bin/munin-cron 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo "Everything started."
+service php-fpm restart 3>&1 4>&2 >>$BUILDLOG 2>&1
+service monit start 3>&1 4>&2 >>$BUILDLOG 2>&1
 
+progress 99 "LEMP stack ready!                                   "
+
+echo ""
 echo -e "\n*****************************************************************"
-echo -e "Webkit installed!\n"
-echo -e "Please copy all those information carefully:\n"
-echo -e "SSH: root / replace"
+echo -e "\nPlease copy all this information carefully before continuing:\n"
+echo -e "SSH: root / youshouldknow!"
 echo -e "User: www / $WWWPASS"
 echo -e "FTP: www / $WWWPASS"
 echo -e "MySQL: root / $SQLPASS"
 echo -e "Web: http://www.$DOMAIN"
 echo -e "Pma: http://pma.$DOMAIN / root / $SQLPASS"
 echo -e "Monit: http://monit.$DOMAIN / monit / $MONITPASS"
-echo -e "Munin: http://munin.$DOMAIN / munin / $MUNINPASS"
-if [[ "$Nginx" == true ]]; then
-	echo -e "PageSpeed: http://www.$DOMAIN/pagespeed_global_admin/"
+echo -e "PageSpeed: http://www.$DOMAIN/pagespeed_global_admin/"
+if [ "$PHPVERSION" -ge "55" ]; then
+	echo -e "OPcache GUI: http://web.$DOMAIN/opcache.php"
 fi
+echo -e "IonCube test: http://web.$DOMAIN/ioncubetest.php"
+
 echo -e "\nVersions:\n"
-if [[ "$Nginx" == true ]]; then
-	nginx -V
-else
-	httpd -V
-fi
+nginx -v
 echo ""
 php -v
 echo ""
@@ -628,30 +611,30 @@ echo -e "\n*****************************************************************\n"
 ################################################################################################
 ################################## OS Cleanup Startup ##########################################
 
-function cleanup {
+function cleanup () {
 
-sshkey="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWfE1zygFZ8tbnG2yGcgc1LFGoSkFWVvB+TGIr6l5R+z/j7CBFQlvo9Wn5ziNBIUy7esXJN0qy2i+p5ZN1v1WBLi0GQZ8ZjqyM7f58wQlxlS7UEEVITwtGNv8B33M+Akg5kRBQgmNswsshukUHLQH8xhdJKBq76DFMXrlOYgXeAF/CBWBf/o5PqdDC9Qi/BqP5tCtsPGDIX9rj3qwzksoAI98gEhGhNYU4Tu7duC/Ie6rhseQIBHdH3xky7og8TOPNWRzSy5/9v5MNYmC+AjYXXPko8mnlMOheDNYerf6S/nz0r8J0EBD5KQEWQcURUoHeHD2+NSgRScTxVW7DxsKT karl@kjmac.aerisnetwork.net-DO-NOT-REMOVE"
 SERVICES="iscsid iscsi smartd kudzu messagebus mcstrans cpuspeed NetworkManager NetworkManagerDispatcher acpid anacron apmd atd auditd autofs avahi-daemon bluetooth cups dhcdbd diskdump firstboot gpm haldaemon hidd ip6tables iptables irda isdn mdmonitor named netdump netfs netplugd nfs nfslock nscd ntpd pcmcia portmap portreserve psacct pcscd rdisc readahead_early readahead_later restorecond rhnsd rpcgssd rpcidmapd rpcsvcgssd saslauthd xfs xinetd winbind ypbind yum yum-updatesd"
 RPMS="systemtap systemtap-runtime eject words alsa-lib python-ldap nfs-utils-lib mkbootdisk sos krb5-workstation pam_krb5 talk cyrus-sasl-plain doxygen gpm dhcdbd NetworkManager yum-updatesd libX11 GConf2 at-spi bluez-gnome bluez-utils cairo cups dogtail frysk gail glib-java gnome-keyring gnome-mount gnome-python2 gnome-python2-bonobo gnome-python2-gconf gnome-python2-gnomevfs gnome-vfs2 gtk2 libXTrap libXaw libXcursor libXevie libXext libXfixes libXfontcache libXft libXi libXinerama libXmu libXpm libXrandr libXrender libXt libXres libXtst libXxf86misc libXxf86vm libbonoboui libgcj libglade2 libgnome libgnomecanvas libgnomeui libnotify libwnck mesa-libGL notification-daemon pango paps pycairo pygtk2 pyspi redhat-lsb startup-notification xorg-x11-server-utils xorg-x11-xauth xorg-x11-xinit libXfont libXau libXdmcp xorg-x11-server-Xvfb ORBit2 firstboot-tui libbonobo pyorbit rhpl desktop-file-utils htmlview pinfo redhat-menus esound ppp wpa_supplicant rp-pppoe ypbind yp-tools oprofile pcmciautils oddjob-libs oddjob gnome-mime-data bluez-libs audiofile aspell aspell-en cpuspeed system-config-securitylevel-tui apmd dhcpv6-client portmap nfs-utils pcsc-lite ccid coolkey ifd-egate pcsc-lite-libs psacct nscd nss_ldap avahi avahi-glib ibmasm rdist conman xinetd samba* php*"
 
-echo -e "\n*****************************************************************"
-echo -e "Configuring OS (SELinux, timezone)"
-echo -e "*****************************************************************\n"
+echo -e "Initializing cleaner and optimizer, see progress below. \n"
+
+progress 0 "Initializing cleaner and optimizer...           "
+
+progress 3 "Configuring few OS stuff...                     "
 
 rm -f /etc/localtime >/dev/null 2>&1
 unlink /etc/localtime >/dev/null 2>&1
 ln -s /usr/share/zoneinfo/America/Montreal /etc/localtime >/dev/null 2>&1
-echo "Timezone set to Montreal."
 sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config >/dev/null 2>&1
-echo "SELinux disabled. Need to reboot."
+echo "SELinux disabled for virtualization needs. Reboot to activate or switch back ENFORCING in /etc/selinux/config." 3>&1 4>&2 >>$BUILDLOG 2>&1
+chmod 775 /var/run/screen
+mkdir -p /opt/scripts
+mkdir -p /opt/src
 
-
-echo -e "\n*****************************************************************"
-echo -e "Disabling services and stopping default services.."
-echo -e "*****************************************************************\n"
+progress 6 "Services cleanup..                              "
 
 for service in $SERVICES; do
-/sbin/chkconfig --level 2345 $service off >/dev/null 2>&1
+	/sbin/chkconfig --level 123456 $service off >/dev/null 2>&1
 done
 
 /etc/init.d/auditd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
@@ -660,178 +643,116 @@ done
 /etc/init.d/saslauthd stop 3>&1 4>&2 >>$BUILDLOG 2>&1
 /etc/init.d/iptables stop 3>&1 4>&2 >>$BUILDLOG 2>&1
 /etc/init.d/sendmail stop 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo "All unused services have been stopped and removed from boot."
 
-echo -e "\n*****************************************************************"
-echo -e "Removing useless rpms.."
-echo -e "*****************************************************************\n"
 
-yum clean all 3>&1 4>&2 >>$BUILDLOG 2>&1
+progress 15 "Removing useless rpms, be patient...            "
+
 yum remove -y $RPMS 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum remove -y *.i386 3>&1 4>&2 >>$BUILDLOG 2>&1
 rm -f /root/anaconda-ks.cfg  /root/install.log  /root/install.log.syslog 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo "Yum cleared. Unused packages and all i386 packages have been removed."
 
-echo -e "\n*****************************************************************"
-echo -e "Updating packages.."
-echo -e "*****************************************************************\n"
+progress 25 "Cleaning Yum cache...                           "
+
+yum clean all 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+
+progress 35 "Updating packages, be patient...               "
 
 yum -y update 3>&1 4>&2 >>$BUILDLOG 2>&1
-echo "All installed packages have been updated."
 
-echo -e "\n*****************************************************************"
-echo -e "Installing EPEL and Aeris repos.."
-echo -e "*****************************************************************\n"
+
+progress 40 "Installing EPEL and Aeris repos...              "
 
 yum install -y $URL/repos/epel-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum install -y $URL/repos/aeris-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 sed -i '/enabled\=1/a exclude\=nginx*,monit*' /etc/yum.repos.d/epel.repo
-echo "EPEL and Aeris repos installed for usefull packages."
-echo "Disabling nginx and monit from EPEL for better version in Aeris."
 
-echo -e "\n*****************************************************************"
-echo -e "Installing usefull packages and directories.."
-echo -e "*****************************************************************\n"
+
+progress 45 "Installing useful packages...                   "
 
 yum install -y bc bind-utils gcc gcc-c++ file git htop iftop iotop hdparm make mtr mutt nc nethogs openssh-clients pbzip2 perl pigz postfix pv rsync screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+
+progress 50 "Postfix setup...                                "
+
 yum remove -y sendmail 3>&1 4>&2 >>$BUILDLOG 2>&1
 /etc/init.d/postfix start 3>&1 4>&2 >>$BUILDLOG 2>&1
 chkconfig postfix on
-echo "All packages have been installed. Sendmail switched for postfix."
-chmod 775 /var/run/screen
-mkdir -p /opt/scripts
-mkdir -p /opt/src
-echo "Directory /opt/scripts and /opt/src created."
 
-echo -e "\n*****************************************************************"
-echo -e "Installing public keys and SSH port 2222.."
-echo -e "*****************************************************************\n"
 
-mkdir /root/.ssh
-echo $sshkey > /root/.ssh/authorized_keys
+progress 55 "Configuring SSH...                              "
+
+mkdir /root/.ssh 3>&1 4>&2 >>$BUILDLOG 2>&1
+echo $SSHKEY > /root/.ssh/authorized_keys
 chmod 600 /root/.ssh/authorized_keys
 sed -i "s/\#Port\ 22/Port\ 2222/g" /etc/ssh/sshd_config
 /etc/init.d/auditd stop >/dev/null 2>&1
 restorecon /root/.ssh/authorized_keys
 /etc/init.d/sshd restart >/dev/null 2>&1
-echo "SSH keys installed, port 2222 activated, auditd stopped to make SSH key works."
 
-echo -e "\n*****************************************************************"
-echo -e "Benchmarking.."
-echo -e "*****************************************************************\n"
 
-echo -e "Benchmarking / partition with dd.."
+progress 60 "Quick benchmarking...                           "
+
 DD=`dd bs=1M count=512 \if=/dev/zero of=/root/benchtestfile conv=fdatasync|& awk '/copied/ {print $8 " "  $9}'`
 rm -f /root/benchtestfile
-echo -e "Writing speed on / partition is: $DD\n"
-
-echo -e "Benchmarking CPU with 400 request at 20000 max prime.."
 syscpu=`sysbench --test=cpu --cpu-max-prime=20000 --max-requests=400 run|grep approx| awk '{print $4}'`
-echo -e "Average CPU time per-request : $syscpu\n"
-
-echo -e "Benchmarking network with 10mbps file on Cachefly.."
-echo -e "Speed is \c"
-echo "scale=2; `curl --silent -w "%{speed_download}" -o /dev/null "http://cachefly.cachefly.net/10mb.test"` / 131072" | bc | xargs -I {} echo {}Mb\/s
 
 
-echo -e "\n*****************************************************************"
-echo -e "Detecting virtualization and IP.."
-echo -e "*****************************************************************\n"
+progress 70 "Running on $VIRT with IP $IP..                  "
 
-### Virtualization ###
 
-yum install -y virt-what 3>&1 4>&2 >>$BUILDLOG 2>&1
-
-VIRT=`virt-what |head -n1`
-
-if [ "$VIRT" == "xen" ];
-	then
-    	echo -e "We seem to be on a Xen domU. Checking IP..\n"
-elif [ "$VIRT" == "openvz" ];
-	then
-    	echo -e "We seem to be on an OpenVZ container. Checking IP..\n"
-elif [ "$VIRT" == "kvm" ];
-	then
-	    echo -e "We seem to be on KVM. Checking IP..\n"
-elif [ "$VIRT" == "vmware" ];
-	then
-	    echo -e "We seem to be on VMware. Checking IP..\n"
-else
-		echo -e "No virtualization detected, we seem to be on a dedicated server. Checking IP..\n"
-		VIRT="node"
-fi
-
-read -p "Script has detected that we are running $VIRT on IP address $IP. Is that correct? (Y/n) " -e VIRT_INPUT
-
-case "$VIRT_INPUT" in
-        n)
-		read -p "Enter the right virtualization (openvz|xen|kvm|vmware|node):" -e VIRT;
-		read -p "Enter the right IP:" -e IP;
-		;;
-		*)
-        ;;
-esac
-
-echo -e "\n*****************************************************************"
-echo -e "Last configurations depending on virtualization: $VIRT"
-echo -e "*****************************************************************\n"
-
-### Guest Server ###
+progress 80 "Last configurations...                          "
 
 if [ "$VIRT" == "openvz" ] || [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
-	echo "vm.swappiness = 1" >> /etc/sysctl.conf
-	echo "Swappiness done."
-	wget -O /opt/scripts/mysqltuner.pl $URL/scripts/mysqltuner.pl 3>&1 4>&2 >>$BUILDLOG 2>&1
+	echo "vm.swappiness = 0" >> /etc/sysctl.conf
+	progress 82 "MySQL backup script...                          "
+	wget -O /opt/scripts/mysqltuner.pl https://raw.githubusercontent.com/major/MySQLTuner-perl/master/mysqltuner.pl 3>&1 4>&2 >>$BUILDLOG 2>&1
 	chmod +x /opt/scripts/mysqltuner.pl
-	echo "MySQL Tuner script done."
+	progress 85 "MySQL Tunner script...                          "
 	wget -O /opt/scripts/backup-mysql.sh $URL/scripts/backup-mysql.sh 3>&1 4>&2 >>$BUILDLOG 2>&1
 	chmod +x /opt/scripts/backup-mysql.sh
-	echo "MySQL Backup script done."
 fi
-
-if [ "$VIRT" == "vmware" ]; then
-
-    echo "Need to install vmware tools...."	
-	#yum install -y -q http://packages.vmware.com/tools/esx/5.0latest/repos/vmware-tools-repo-RHEL6-8.6.12-1.el6.x86_64.rpm
-	#yum install -y -q http://packages.vmware.com/tools/esx/5.1latest/repos/vmware-tools-repo-RHEL6-9.0.10-1.el6.x86_64.rpm
-	#yum install -y -q http://packages.vmware.com/tools/esx/5.5latest/repos/vmware-tools-repo-RHEL6-9.4.5-1.el6.x86_64.rpm
-	#yum install -y -q vmware-tools-esx-nox
-
-fi
-
-
-### Custom guest virtualization rules ###
 
 if [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
 	echo "/usr/sbin/ntpdate -b ca.pool.ntp.org" >> /etc/rc.local
-	echo -e "NTP added."
 	echo "/sbin/ethtool --offload eth0 gso off tso off tx off sg off gro off" >> /etc/rc.local
-	echo "ehtool opmitization to eth0 added."
-	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=noop / nohz=off / noatime"
-
 fi
-
-
-### Node Server ###
 
 if [ "$VIRT" == "node" ]; then
 	echo "vm.swappiness = 1" >> /etc/sysctl.conf
-	echo -e "Swappiness done."
-	echo "Installing few packages for node.."
-	yum install -y kpartx lm_sensors ipmitool 3>&1 4>&2 >>$BUILDLOG 2>&1
-	yum install -y ebtables 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo "Ebtables installed, need for IP stealing."
+	progress 82 "Installing node packages...                     "
+	yum install -y kpartx ebtables lm_sensors ipmitool 3>&1 4>&2 >>$BUILDLOG 2>&1
+	progress 85 "Switch SSH port to 25000...                     "
 	sed -i "s/\Port\ 2222/Port\ 25000/g" /etc/ssh/sshd_config
 	/etc/init.d/sshd restart 3>&1 4>&2 >>$BUILDLOG 2>&1
-	echo "SSH port switched to 25000."
 	echo "/usr/sbin/ntpdate -b ca.pool.ntp.org" >> /etc/rc.local
-	echo -e "NTP added."
-	echo -e "\nYou should consider adding the following parameters to grub/fstab: elevator=deadline / nohz=off / noatime."
-	echo -e "You should also consider adding the drive/raid optmization in rc.local."
-	echo -e "If the node has a LSI controller, install MegaCli and add megacli/smartX to /etc/profile."
-	echo -e "If the node is a Xen dom0, add ethtool command to /etc/rc.local."
+	echo "/sbin/ethtool --offload eth0 gso off tso off tx off sg off gro off" >> /etc/rc.local
 fi
 
+if [ "$VIRT" == "unknown" ]; then
+	echo "vm.swappiness = 0" >> /etc/sysctl.conf
+	echo "/usr/sbin/ntpdate -b ca.pool.ntp.org" >> /etc/rc.local
+fi
+
+progress 99 "CentOS has been cleaned up and optimized!       "
+
+echo ""
+echo -e "\nFinal notes:\n"
+if [ "$VIRT" == "openvz" ] || [ "$VIRT" == "unknown" ]; then
+	echo "Nothing more to do on an $VIRT server."
+fi
+if [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
+	echo -e "You should consider adding the following parameters to grub/fstab: elevator=noop / nohz=off / noatime"
+fi
+if [ "$VIRT" == "node" ]; then
+	echo -e "Since this server is a node, you should consider adding the following parameters to grub/fstab: elevator=deadline / nohz=off / noatime."
+	echo -e "You should also consider adding the drive/raid optmization (blockdev) in rc.local."
+	echo -e "If the node has a LSI controller, install megaraid-utils package."
+	echo -e "If the node is a Xen dom0, add bridge ethtool settings to /etc/rc.local."
+fi
+echo -e "\nBenchmark results:\n"
+echo -e "Writing speed on / partition is: $DD"
+echo -e "Average CPU time per-request with 400 request at 20000 max prime : $syscpu\n"
 }
 
 
@@ -841,12 +762,12 @@ fi
 function notify {
 	rm -f /root/centos6.sh
 	if [ -f /usr/bin/mutt ]; then
-		echo -e "A new server has been built. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- kj@aeris.pro
-		echo -e "\nAn email of the build has been sent to kj@aeris.pro. Please mannualy clear history with history -c\n"
+		echo -e "A new server has been configured. Here's the debug log attached." | mutt -a "$BUILDLOG" -s "New server builded: `hostname`" -- $EMAILS
+		echo -e "\nAn email of the build has been sent. Please mannualy clear history with history -c\n"
 		rm -f $BUILDLOG
 		rm -f /root/sent
 	else
-		echo -e "\nMutt is't installed so we cannot send a report email. Please see $BUILDLOG\nPlease mannualy clear history with history -c\n"
+		echo -e "\nMutt isn't installed so we cannot send a report email. Please see $BUILDLOG\nPlease mannualy clear history with history -c\n"
 	fi
 	cat /dev/null > /root/.bash_history
 }
@@ -855,33 +776,50 @@ function notify {
 ################################################################################################
 #################################### Script Startup ############################################
 
+clear
 echo -e "\n*****************************************************************"
-echo -e "CentOS 6 64bits post-installer by kjohnson@aerisnetwork.com"
+echo -e "CentOS 6 64bits post-installer by karljohnson.it@gmail.com"
 echo -e "for NEW installation only, hit ctrl-c to cancel."
 echo -e "*****************************************************************\n"
 
-INT=3
-for i in `seq 1 3`;
-do
-        sleep 1
-        echo -e $INT
-        INT=$((INT-1))
-done
+progress 0 "Detecting virtualization and IP...            "
+yum install -y virt-what 3>&1 4>&2 >>$BUILDLOG 2>&1
+progress 90 "Detecting virtualization and IP...            "
+VIRT=`virt-what |head -n1`
+
+progress 100 "                                               "
+
+read -p "Script has detected that we are running '$VIRT' virtualization on IP $IP. Is that correct? (Y/n) " -e VIRT_INPUT
+
+case "$VIRT_INPUT" in
+        n)
+		read -p "Enter the right virtualization (openvz|xen|kvm|vmware|node|other): " -e VIRT;
+		read -p "Enter the right IP: " -e IP;
+		;;
+		*)
+        ;;
+esac
+
+if [ "$VIRT" != "xen" ] && [ "$VIRT" != "openvz" ] && [ "$VIRT" != "kvm" ] && [ "$VIRT" != "vmware" ]; then
+	VIRT="unknown"
+fi
 
 if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == "CentOS 6" ]] && [[ `uname -p` == "x86_64" ]]; then
 
 	selection=
 	until [ "$selection" = "0" ]; do
-		echo -e "\n******************** CentOS 6 Builder ********************\n"
+		clear
+		echo -e "\n*************** CentOS 6 Post-Installation ***************\n"
 		echo -e "Server: `hostname`"
-		echo -e "IP: $IP\n"
+		echo -e "IP: $IP"
+		echo -e "Virtualization: $VIRT\n"
 		echo -e "[1] Clean and optimize the OS"
 		echo -e "[2] Proceed with cPanel"
-		echo -e "[3] Proceed with LAMP/LEMP and PHP 53/54/55/56"
+		echo -e "[3] Proceed with LEMP and PHP 53/54/55/56"
 		echo -e "[4] Proceed with "
 		echo -e "[5] Proceed with Zimbra"
 		echo -e "[6] Proceed with FreePBX\n"
-		echo -e "[0] Quit builder"
+		echo -e "[0] Quit post-installer"
 		echo -e "\n**********************************************************\n"
 	    echo -n "Enter selection: "
 	    read selection
@@ -889,7 +827,7 @@ if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == 
 	    case $selection in
 			1 ) cleanup;enter ;;
 			2 ) verifydep;cpanel;enter ;;
-		    3 ) verifydep;lamp;enter ;;
+		    3 ) verifydep;lemp;enter ;;
 			6 ) verifydep;freepbx;enter ;;
 			0 ) notify;exit ;;
 		    * ) echo "Please enter 1, 2, 3, 4, 5, 6 or 0"
@@ -897,6 +835,5 @@ if [[ `cat /etc/redhat-release | awk '{print$1,$3}' | rev | cut -c 3- | rev` == 
 	done
 
 else
-	echo -e "\nNot on CentOS 6 64bits, please reinstall -.- \n"
+	echo -e "\nNot on CentOS 6 64bits, please redeploy -.- \n"
 fi
-

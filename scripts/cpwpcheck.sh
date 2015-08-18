@@ -1,15 +1,16 @@
 #!/bin/bash
 #
-# Simple WP checkup for cPanel with suPHP/CGI/ruid2/cloudlinux - not mod_php (DSO)
+# Simple WordPress version checkup for cPanel with suPHP/CGI/ruid2/cloudlinux - not mod_php (DSO)
+# Also chmod 600 wp-config to secure file from other users
 #
 # by Karl Johnson
-# kjohnson@aerisnetwork.com
+# karljohnson.it@gmail.com
 #
-# Version 1.1 - 2015/04/29
+# Version 1.1
 #
 
 LOG="/tmp/cpwpcheck.log"
-EMAILS="kj@aeris.pro kjohnson@aerisnetwork.com" ## Separate with space
+EMAILS="kjohnson@aerisnetwork.com" ## Separate with space
 
 if [ ! -f /usr/bin/mutt ]; then
   echo "Mutt is not in /usr/bin, please check"
