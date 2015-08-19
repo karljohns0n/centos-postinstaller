@@ -1,4 +1,4 @@
-## Current
+## 2.0.0 - 2015/08/19
 
 - Major cleanup in CentOS 6 post-installer and several scripts
 - Apache removed from the LAMP build, only LEMP anymore

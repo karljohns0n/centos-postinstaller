@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# CentOS 6 Post-Installer - Version 1.35
+# CentOS 6 Post-Installer - Version 2.0.0
 # Copyright 2014-2015 Karl Johnson -- karljohnson.it@gmail.com -- kj @ freenode
 # 
 #
