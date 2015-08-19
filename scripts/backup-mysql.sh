@@ -1,17 +1,13 @@
-#!/bin/sh
+#!/bin/bash
 #
-# MySQL Backup and Optimize - All Databases
+# MySQL backup and optimize all databases -- Version 1.1
+# Copyright 2014-2015 Karl Johnson -- karljohnson.it@gmail.com -- kj @ freenode
 #
-# by Karl Johnson
-# karljohnson.it@gmail.com
-#
-# Version 1.1
 #
 # You should add a daily cron for this, such as:
 # 0 3 * * * /opt/scripts/backup-mysql.sh > /dev/null 2>&1
 #
-
-### System Setup ###
+#
 
 BACKUP=/backup/databases
 NOW=$(date +"%Y-%m-%d")
@@ -26,27 +22,19 @@ then
     mkdir -p $BACKUP
 fi
 
-### MySQL Setup ###
-
 MUSER="root"
 MHOST="localhost"
 MYSQL="$(which mysql)"
 MYSQLDUMP="$(which mysqldump)"
 GZIP="$(which gzip)"
 
-### Cleanup Directory ###
-
 rm -f $BACKUP/*.gz
-
-### Start MySQL Backup ###
 
 DBS="$($MYSQL --defaults-extra-file=/root/.my.cnf -u $MUSER -h $MHOST -Bse 'show databases')"
 for db in $DBS
 do
 FILE=$BACKUP/mysql-$db.$NOW.$(date +"%H-%M-%S").gz
-$MYSQLDUMP --defaults-extra-file=/root/.my.cnf -u $MUSER -h $MHOST $db | $GZIP -9 > $FILE
+$MYSQLDUMP --defaults-extra-file=/root/.my.cnf -u "$MUSER" -h "$MHOST" "$db" | "$GZIP" -9 > "$FILE"
 done
-
-### Lets optimize them at the same time ###
 
 /usr/bin/mysqlcheck --defaults-extra-file=/root/.my.cnf -u root --auto-repair --optimize --all-databases

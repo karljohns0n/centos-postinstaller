@@ -1,4 +1,4 @@
-# CentOS 6 & 7 post-installation and useful scripts
+# CentOS Post-Installation and useful scripts
 ### by Karl Johnson -- karljohnson.it@gmail.com -- kj @ Freenode
 
 CentOS post-installer was originally a script that I use when provisioning fast Xen and OpenVZ servers so it works well with OpenVZ/Xen official templates. It takes very few minutes to have an optmized OS and a full LEMP stack (latest Nginx, PHP, MySQL and PageSpeed versions) installed with a first Website configured. I haven't maintained those scripts a lot since CentOS 7 release but I should start working on it soon after I publish it from private BitBucket to public GitHub. Run only the post-installation script on a brand new VM. It has been used in production for 2 years now!
@@ -25,6 +25,7 @@ This script will install Nginx with PageSpeed and will let you choose between PH
 * Nginx-more (latest Nginx, OpenSSL, PageSpeed, ModSecurity, More-Headers, Cache Purge, etc..)
 * PHP 5.3, 5.4, 5.5, 5.6
 * PHP-FPM, OPcache & Memcached
+* PHP sessions in Memcached
 * MySQL 5.6 or MariaDB 10
 * VsFTPd with virtual users
 * PhpMyAdmin
@@ -50,14 +51,14 @@ This script will install version 2.11 of FreePBX and Asterisk 11 from AsteriskNO
 
 ### Scripts
 
-* Basic mysql backup & optimize
-* WordPress search, show version and secure wp-config.php (for cPanel)
+* Basic MySQL backup & optimize
+* WordPress search, show version and secure wp-config.php (cPanel only)
 * Nginx cache cleaner
 * LSI MegaRAID report for device and hard drives health. Compatible with SATA and SAS.
 
 ## Todo
 
-* Post-installation for CentOS 7
+* Post-installer for CentOS 7
 * Zimbra build
 * LEMH build (HHVM!)
 * Varnish setup for cPanel

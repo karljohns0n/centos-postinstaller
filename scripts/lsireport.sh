@@ -1,17 +1,15 @@
-#!/bin/sh
+#!/bin/bash
 #
-# LSI MegaRAID report for device and hard drives health. Compatible with SATA and SAS.
+# LSI MegaRAID report for device and hard drives health, compatible with SATA and SAS -- Version 1.2
+# Copyright 2014-2015 Karl Johnson -- karljohnson.it@gmail.com -- kj @ freenode
 #
-# by Karl Johnson
-# karljohnson.it@gmail.com
-#
-# Version 1.2
-#
+# 
 # You should add a cron for this, such as:
 # 0 7 * * 0 /bin/bash /opt/megeraid/lsireport.sh > /dev/null 2>&1
 #
+#
 
-email="report@aerisnetwork.com"
+email=""
 
 if [ -f /opt/MegaRAID/MegaCli/MegaCli64 ]; then
     cli="/opt/MegaRAID/MegaCli/MegaCli64"
@@ -28,27 +26,27 @@ if [ ! -f /usr/bin/mutt ]; then
 fi
 
 $cli -AdpAllInfo -aALL > /tmp/AdpAllInfo.txt
-numarrays=`grep "Virtual Drives" /tmp/AdpAllInfo.txt|awk '{print $4}'`
+numarrays=$(grep "Virtual Drives" /tmp/AdpAllInfo.txt|awk '{print $4}')
 LSILOG="/tmp/lsireport.log"
 
 
 ### Basic information
 
 echo -e "*****************************************************\n
-LSI report for: `hostname`\n
-Product: `grep "Product Name" /tmp/AdpAllInfo.txt|awk '{print $4,$5,$6,$7,$8}'`
-Firmware version: `grep "FW Version" /tmp/AdpAllInfo.txt|awk '{print $4}'`
-Driver version: `/sbin/modinfo megaraid_sas|grep "version:"|grep -v srcversion|awk '{print $2}'`\n" 3>&1 4>&2 >>$LSILOG 2>&1
+LSI report for: $(hostname)\n
+Product: $(grep "Product Name" /tmp/AdpAllInfo.txt|awk '{print $4,$5,$6,$7,$8}')
+Firmware version: $(grep "FW Version" /tmp/AdpAllInfo.txt|awk '{print $4}')
+Driver version: $(/sbin/modinfo megaraid_sas|grep "version:"|grep -v srcversion|awk '{print $2}')\n" 3>&1 4>&2 >>$LSILOG 2>&1
 
 
 ### Status of all arrays
 
 echo -e "\nStatus of all arrays" 3>&1 4>&2 >>$LSILOG 2>&1
 i="0"
-while [ $i -lt $numarrays ]
+while [ $i -lt "$numarrays" ]
 do
-	echo " - Array #$i state is `$cli -LDInfo -L$i -aALL|grep State |awk '{print $3}'`" 3>&1 4>&2 >>$LSILOG 2>&1
-	echo " - Array #$i `$cli -LDInfo -L$i -aALL|grep 'Current Cache Policy'`" 3>&1 4>&2 >>$LSILOG 2>&1
+	echo " - Array #$i state is $($cli -LDInfo -L$i -aALL|grep State |awk '{print $3}')" 3>&1 4>&2 >>$LSILOG 2>&1
+	echo " - Array #$i $($cli -LDInfo -L$i -aALL|grep 'Current Cache Policy')" 3>&1 4>&2 >>$LSILOG 2>&1
 	i=$[$i+1]
 done
 
@@ -57,15 +55,15 @@ done
 
 echo -e "\n\nStatus of all device errors 
 
-Card `grep 'Memory Correctable Errors' /tmp/AdpAllInfo.txt`
-Card `grep 'Memory Uncorrectable Errors' /tmp/AdpAllInfo.txt`" 3>&1 4>&2 >>$LSILOG 2>&1
+Card $(grep 'Memory Correctable Errors' /tmp/AdpAllInfo.txt)
+Card $(grep 'Memory Uncorrectable Errors' /tmp/AdpAllInfo.txt)" 3>&1 4>&2 >>$LSILOG 2>&1
 $cli -PDList -aALL|egrep "Error Count|Failure Count" 3>&1 4>&2 >>$LSILOG 2>&1
 
 
 ### Status of all SMART
 
-deviceids=`$cli -PDList -aAll | egrep "Device Id:"|awk '{print $3}'|sort -n`
-disktype=`$cli -PDList -aAll|grep "PD Type"|awk '{print $3}'|head -n 1`
+deviceids=$($cli -PDList -aAll | egrep "Device Id:"|awk '{print $3}'|sort -n)
+disktype=$($cli -PDList -aAll|grep "PD Type"|awk '{print $3}'|head -n 1)
 
 echo -e "\n\nStatus of all $disktype disk SMART\n" 3>&1 4>&2 >>$LSILOG 2>&1
 while read line; do
@@ -84,7 +82,7 @@ done <<< "$deviceids"
 echo -e "Finaly, the last 1000 lines of the event log for verification:\n" 3>&1 4>&2 >>$LSILOG 2>&1
 $cli -AdpEventLog -GetEvents -f /dev/stdout -aALL|tail -n1000 3>&1 4>&2 >>$LSILOG 2>&1
 
-echo -e "Here's the full LSI weekly report for `hostname`" | /usr/bin/mutt -a "$LSILOG" -s "LSI report for: `hostname`" -- $email
+echo -e "Here's the full LSI weekly report for $(hostname)" | /usr/bin/mutt -a "$LSILOG" -s "LSI report for: $(hostname)" -- $email
 
 
 # Cleanup
