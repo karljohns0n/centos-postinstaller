@@ -1,7 +1,10 @@
 # CentOS Post-Installation and useful scripts
-### by Karl Johnson -- karljohnson.it@gmail.com -- kj @ Freenode
+##### by Karl Johnson -- karljohnson.it@gmail.com -- kj @ Freenode
 
 CentOS post-installer was originally a script that I use when provisioning fast Xen and OpenVZ servers so it works well with OpenVZ/Xen official templates. It takes very few minutes to have an optimized OS and a full LEMP stack (latest Nginx, PHP, MySQL and PageSpeed versions) installed with a first Website configured. I haven't maintained those scripts a lot since CentOS 7 release but I should start working on it soon after I publish it from private BitBucket to public GitHub. Run only the post-installation script on a brand new VM. It has been used in production for 2 years now!
+
+
+![Screenshot](https://github.com/karljohns0n/centos-postinstaller/raw/master/files/screenshot-c6.gif "Screenshot")
 
 ## Builds
 
