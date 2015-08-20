@@ -320,6 +320,8 @@ if [ "$PHPVERSION" -ge "55" ]; then
 	wget -O /usr/share/nginx/html/opcache.php https://raw.githubusercontent.com/amnuts/opcache-gui/master/index.php 3>&1 4>&2 >>$BUILDLOG 2>&1
 fi
 wget -O /usr/share/nginx/html/ioncubetest.php $URL/files/ioncubetest.php 3>&1 4>&2 >>$BUILDLOG 2>&1 ### provided by Andrew Collington @ Github
+wget -O /etc/ssl/certs/rapidssl-cabundle-sha256.crt $URL/files/rapidssl-cabundle-sha256.crt 3>&1 4>&2 >>$BUILDLOG 2>&1
+wget -O /etc/ssl/certs/rapidssl-trusted-sha256.crt $URL/files/rapidssl-trusted-sha256.crt 3>&1 4>&2 >>$BUILDLOG 2>&1
 
 ### PHP-FPM
 
@@ -641,8 +643,6 @@ progress 3 "Configuring few OS stuff...                     "
 	rm -f /etc/localtime
 	unlink /etc/localtime
 	ln -s /usr/share/zoneinfo/America/Montreal /etc/localtime
-	sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
-	echo "SELinux disabled for virtualization needs. Reboot to activate or switch back ENFORCING in /etc/selinux/config."
 	chmod 775 /var/run/screen
 	mkdir -p /opt/scripts
 	mkdir -p /opt/src
@@ -737,6 +737,7 @@ if [ "$VIRT" == "xen" ] || [ "$VIRT" == "kvm" ] || [ "$VIRT" == "vmware" ]; then
 fi
 
 if [ "$VIRT" == "node" ]; then
+	sed -i "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
 	echo "vm.swappiness = 1" >> /etc/sysctl.conf
 	progress 82 "Installing node packages...                     "
 	yum install -y kpartx ebtables lm_sensors ipmitool 3>&1 4>&2 >>$BUILDLOG 2>&1

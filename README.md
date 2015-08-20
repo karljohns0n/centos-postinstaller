@@ -12,7 +12,7 @@ CentOS post-installer was originally a script that I use when provisioning fast 
 
 This script assume that we are on a brand new server, it's really important as some packages will be removed.
 
-* Disable SELinux, set Timezone, disable useless services
+* Set Timezone, disable useless services
 * Remove unused packages and update OS
 * Install a SSH key and switch SSH port (2222 for vm, 25000 for node)
 * Install useful packages
