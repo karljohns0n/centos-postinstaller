@@ -88,7 +88,7 @@ function verifydep () {
 	fi
 
 	if [ ! -f /etc/yum.repos.d/epel.repo ]; then
-    	yum install -y $URL/repos/epel-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+    	yum --enablerepo=extras install -y epel-release 3>&1 4>&2 >>$BUILDLOG 2>&1
     	echo "EPEL repository installed. Are you sure cleanup script (1) has been run first?"
 	fi
 
@@ -681,7 +681,7 @@ yum -y update 3>&1 4>&2 >>$BUILDLOG 2>&1
 
 progress 40 "Installing EPEL and Aeris repos...              "
 
-yum install -y $URL/repos/epel-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum --enablerepo=extras install -y epel-release 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum install -y $URL/repos/aeris-release-6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 sed -i '/enabled\=1/a exclude\=nginx*,monit*' /etc/yum.repos.d/epel.repo
 
