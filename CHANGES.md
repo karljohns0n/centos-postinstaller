@@ -1,3 +1,9 @@
+## Current
+
+- Install EPEL directly from CentOS extras repo
+- Bump FreePBX to 12 (CentOS 6)
+- Change the way to detect the OS
+
 ## 2.0.0 - 2015/08/19
 
 - Major cleanup in CentOS 6 post-installer and several scripts

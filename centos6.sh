@@ -109,7 +109,7 @@ function verifydep () {
 
 
 ################################################################################################
-################################### Option 1 cPanel Startup ####################################
+################################### Option 2 cPanel Startup ####################################
 
 function cpanel {
 
@@ -128,7 +128,6 @@ echo "
 alias apachetop=\"/opt/scripts/apache-top.py -u http://127.0.0.1/whm-server-status\"
 alias apachelogs=\"tail -f /usr/local/apache/logs/error_log\"
 alias eximlogs=\"tail -f /var/log/exim_mainlog\"
-alias htop=\"htop -C\"
 " >> /etc/profile
 echo "Custom alias have been installed."
 
@@ -139,22 +138,24 @@ touch /var/log/mysqld-slow.log
 chown mysql:root /var/log/mysqld-slow.log
 chmod 664 /var/log/mysqld-slow.log
 echo "[mysqld]
-innodb_file_per_table = 1
 default-storage-engine = MyISAM
 log-error = /var/log/mysqld.log
 bind-address = 127.0.0.1
+#performance_schema = 0
 
 query-cache-type = 1
-query-cache-size = 32M
+query-cache-size = 96M
 query_cache_limit = 4M
 #table_cache = 1024  ### replace with table_open_cache= if MySQL 5.6
 open_files_limit = 2048
 max_connections = 75
-thread_cache_size = 2
-tmp_table_size = 32M
-max_heap_table_size = 32M
-key_buffer_size = 32M
-innodb_buffer_pool_size = 32M
+thread_cache_size = 4
+tmp_table_size = 64M
+max_heap_table_size = 64M
+key_buffer_size = 64M
+innodb_buffer_pool_size = 64M
+innodb_buffer_pool_instances = 1
+innodb_file_per_table = 1
 join_buffer_size = 256k
 sort_buffer_size = 256k
 read_buffer_size = 256k
@@ -480,7 +481,7 @@ echo -e "\n*****************************************************************\n"
 
 
 ################################################################################################
-############################### Option 6 FreePBX Startup #######################################
+############################### Option 5 FreePBX Startup #######################################
 
 function freepbx {
 
@@ -492,37 +493,36 @@ read -p "Which Panel admin password do you want ? : " -e PANEL_PASS
 read -p "Which MySQL root password do you want ? : " -e MYSQL_PASS
 ARI=$(tr -cd 'a-f0-9' < /dev/urandom | head -c 8)
 
-sed -i "s/enabled=1/enabled=0/g" /etc/yum.repos.d/epel.repo >/dev/null 2>&1
+sed -i "s/enabled=1/enabled=0/g" /etc/yum.repos.d/epel.repo >/dev/null 3>&1 4>&2 >>$BUILDLOG 2>&1
 yum clean all -q
 echo -e "\nEPEL repo disabled because it has an old asterisk version. Yum cleaned."
 
-wget --quiet -N -O /opt/src/freepbx-2.11.0.25.tgz http://mirror.freepbx.org/freepbx-2.11.0.25.tgz
-pushd /opt/src >/dev/null 2>&1
+wget --quiet -N -O /opt/src/freepbx-12.0.tgz http://mirror.freepbx.org/modules/packages/freepbx/freepbx-12.0-latest.tgz
+pushd /opt/src >/dev/null 3>&1 4>&2 >>$BUILDLOG 2>&1
 tar -zxf freepbx*.tgz
 rm -f freepbx*.tgz
-echo "FreePBX 2.11 downloaded and uncompressed."
+echo "FreePBX 12 downloaded and uncompressed."
 
-yum install -q -y httpd httpd-devel php php-devel php-process php-common php-pear php-pear-DB php-mysql php-xml php-xmlrpc php-mbstring php-pdo php-cli php-mysql php-gd php-xml php-imap mysql mysql-server libxml2-devel sqlite-devel openssl-devel perl curl sox bison audiofile-devel ncurses-devel dnsmasq >/dev/null 2>&1
-service mysqld restart >/dev/null 2>&1
+echo -e "\n*****************************************************************"
+echo -e "Web server and Asterisk installation starting"
+echo -e "*****************************************************************\n"
+
+yum install -q -y httpd httpd-devel php php-devel php-process php-common php-pear php-pear-DB php-mysql php-xml php-xmlrpc php-mbstring php-pdo php-cli php-mysql php-gd php-xml php-imap mysql mysql-server libxml2-devel sqlite-devel openssl-devel perl curl sox bison audiofile-devel ncurses-devel dnsmasq 3>&1 4>&2 >>$BUILDLOG 2>&1
+service mysqld restart >/dev/null 3>&1 4>&2 >>$BUILDLOG 2>&1
 sleep 2
 echo "FreePBX dependencies such as Apache/PHP/MySQL are installed."
-
-yum install -y -q http://packages.asterisk.org/centos/6/current/x86_64/RPMS/asterisknow-version-3.0.1-2_centos6.noarch.rpm
-echo "Asterisk 11 repo installed."
 
 /usr/bin/mysqladmin -u root password "$MYSQL_PASS"
 /usr/bin/mysqladmin -u root -p"$MYSQL_PASS" create asterisk
 /usr/bin/mysqladmin -u root -p"$MYSQL_PASS" create asteriskcdrdb
-echo "MySQl root set to $MYSQL_PASS. Asterisk DBs are created. (asterisk and asteriskcdrdb)"
+echo "MySQL root set to $MYSQL_PASS. Asterisk DBs are created."
 
+yum install -y -q http://packages.asterisk.org/centos/6/current/x86_64/RPMS/asterisknow-version-3.0.1-3_centos6.noarch.rpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+echo "Asterisk 12 repo installed."
 
-echo -e "\n*****************************************************************"
-echo -e "Web server and Asterisk installation starting"
-echo -e "\n*****************************************************************"
-
-
-yum install -y -q asterisk asterisk-configs asterisk-addons asterisk-ogg asterisk-addons-mysql asterisk-voicemail asterisk-sounds-moh-opsound-wav asterisk-sounds-moh-opsound-ulaw asterisk-sounds-moh-opsound-g722 asterisk-sounds-core-en-ulaw asterisk-sounds-core-en-g722 asterisk-sounds-core-fr-ulaw asterisk-sounds-core-fr-g722 asterisk-sounds-core-fr-gsm asterisk-sounds-extra-en-ulaw asterisk-sounds-extra-en-gsm php-pear-DB --enablerepo=asterisk-11
-echo "Asterisk 11 packages have been installed."
+echo -e "\nInstalling Asterisk, please wait.."
+yum install -y -q asterisk asterisk-configs asterisk-addons asterisk-ogg asterisk-addons-mysql asterisk-voicemail asterisk-sounds-moh-opsound-wav asterisk-sounds-moh-opsound-ulaw asterisk-sounds-moh-opsound-g722 asterisk-sounds-core-en-ulaw asterisk-sounds-core-en-g722 asterisk-sounds-core-fr-ulaw asterisk-sounds-core-fr-g722 asterisk-sounds-core-fr-gsm asterisk-sounds-extra-en-ulaw asterisk-sounds-extra-en-gsm php-pear-DB --enablerepo=asterisk-12 3>&1 4>&2 >>$BUILDLOG 2>&1
+echo "Asterisk 12 packages have been installed."
 
 touch /var/log/asterisk/freepbx.log
 chown asterisk:root /var/log/asterisk/freepbx.log
@@ -545,8 +545,8 @@ AuthUserFile /var/www/.panel_htpasswd
 </Limit>
 </Location>
 " >> /etc/httpd/conf/httpd.conf
-service httpd restart >/dev/null 2>&1
-pushd /opt/src/freepbx* >/dev/null 2>&1
+service httpd restart 3>&1 4>&2 >>$BUILDLOG 2>&1
+pushd /opt/src/freepbx* 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Few changes done to Apache/PHP and safe_asterisk binary."
 
 mysql -u root -p"$MYSQL_PASS" asterisk < SQL/newinstall.sql
@@ -558,9 +558,8 @@ echo -e "FreePBX SQL tables installed.\n\n"
 
 chown -R asterisk:root /var/lib/asterisk
 chmod 775 /var/lib/asterisk
-chown -R asterisk:asterisk /var/www/html
-echo -e "Starting Asterisk, you can ignore errors.\n\n"
-/usr/sbin/safe_asterisk & >/dev/null 2>&1
+mv /var/www/html /var/www/html.bak 3>&1 4>&2 >>$BUILDLOG 2>&1
+/usr/sbin/safe_asterisk 3>&1 4>&2 >>$BUILDLOG 2>&1
 sleep 2
 echo -e "\nAsterisk started."
 echo -e "\n*****************************************************************"
@@ -576,14 +575,14 @@ echo -e "PATH to use for your AMP web root: /var/www/html"
 echo -e "IP : $IP"
 echo -e "*****************************************************************\n"
 ./install_amp
-amportal chown >/dev/null 2>&1
+amportal chown 3>&1 4>&2 >>$BUILDLOG 2>&1
 sed -i "s/ari_password/$ARI/g" /etc/amportal.conf
 mysql -u root -p"$MYSQL_PASS" asterisk -e "UPDATE freepbx_settings SET value='$PANEL_PASS' WHERE keyword='AMPMGRPASS';"
 echo "FreePBX installed."
 
-/usr/local/sbin/amportal stop >/dev/null 2>&1
+/usr/local/sbin/amportal stop 3>&1 4>&2 >>$BUILDLOG 2>&1
 sleep 2
-/usr/local/sbin/amportal start >/dev/null 2>&1
+/usr/local/sbin/amportal start 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Asterisk restarted."
 
 chkconfig mysqld on
@@ -605,11 +604,20 @@ mv /etc/asterisk/ccss.conf /etc/asterisk/ccss.conf.origin
 mv /etc/asterisk/chan_dahdi.conf /etc/asterisk/chan_dahdi.conf.origin
 mv /etc/asterisk/udptl.conf /etc/asterisk/udptl.conf.origin
 mv /etc/asterisk/http.conf /etc/asterisk/http.conf.origin
-/var/lib/asterisk/bin/retrieve_conf >/dev/null 2>&1
+mv /etc/asterisk/indications.conf /etc/asterisk/indications.conf.origin
+mv /etc/asterisk/meetme.conf /etc/asterisk/meetme.conf.origin
+mv /etc/asterisk/musiconhold.conf /etc/asterisk/musiconhold.conf.origin
+mv /etc/asterisk/queues.conf /etc/asterisk/queues.conf.origin
+mv /etc/asterisk/phone.conf /etc/asterisk/phone.conf.origin
+mv /etc/asterisk/manager.conf /etc/asterisk/manager.conf.origin
+mv /etc/asterisk/modules.conf /etc/asterisk/modules.conf.origin
+mv /etc/asterisk/cdr_mysql.conf /etc/asterisk/cdr_mysql.conf.origin
+mv /etc/asterisk/enum.conf /etc/asterisk/enum.conf.origin
+/var/lib/asterisk/bin/retrieve_conf 3>&1 4>&2 >>$BUILDLOG 2>&1
 mkdir /var/www/html/admin/modules/_cache
 chown asterisk:asterisk /var/www/html/admin/modules/_cache
-echo "Last asterisk/freepbx configurations done."
-/usr/local/sbin/amportal restart >/dev/null 2>&1
+echo "Last Asterisk/Freepbx configurations done."
+/usr/local/sbin/amportal restart 3>&1 4>&2 >>$BUILDLOG 2>&1
 echo "Asterisk started."
 
 
@@ -617,9 +625,10 @@ echo -e "\n*****************************************************************"
 echo -e "FreePBX & Asterisk installation done!"
 echo -e "*****************************************************************\n"
 asterisk -V
-echo -e "\nYou should now open your browser at : http://$IP/"
-echo -e "Asterisk Manager interface username : admin"
+echo -e "\nYou can now open your browser at : http://$IP/"
+echo -e "\nAsterisk Manager interface username : admin"
 echo -e "Asterisk Manager interface password : $PANEL_PASS"
+echo -e "\nYou should also update your modules!"
 echo -e "\n*****************************************************************\n"
 
 }
@@ -823,7 +832,7 @@ if [ "$VIRT" != "xen" ] && [ "$VIRT" != "openvz" ] && [ "$VIRT" != "kvm" ] && [ 
 	VIRT="unknown"
 fi
 
-if [[ $(awk '{print$1,$3}' < /etc/redhat-release | rev | cut -c 3- | rev) == "CentOS 6" ]] && [[ $(uname -p) == "x86_64" ]]; then
+if [[ $(awk '{print substr($0,0,16)}' /etc/redhat-release) == "CentOS release 6" ]] && [[ $(uname -p) == "x86_64" ]]; then
 
 	selection=
 	until [ "$selection" = "0" ]; do
@@ -835,9 +844,8 @@ if [[ $(awk '{print$1,$3}' < /etc/redhat-release | rev | cut -c 3- | rev) == "Ce
 		echo -e "[1] Clean and optimize the OS"
 		echo -e "[2] Proceed with cPanel"
 		echo -e "[3] Proceed with LEMP and PHP 53/54/55/56"
-		echo -e "[4] Proceed with "
-		echo -e "[5] Proceed with Zimbra"
-		echo -e "[6] Proceed with FreePBX\n"
+		echo -e "[4] Proceed with Zimbra"
+		echo -e "[5] Proceed with FreePBX\n"
 		echo -e "[0] Quit post-installer"
 		echo -e "\n**********************************************************\n"
 	    echo -n "Enter selection: "
@@ -847,9 +855,9 @@ if [[ $(awk '{print$1,$3}' < /etc/redhat-release | rev | cut -c 3- | rev) == "Ce
 			1 ) cleanup;enter ;;
 			2 ) verifydep;cpanel;enter ;;
 		    3 ) verifydep;lemp;enter ;;
-			6 ) verifydep;freepbx;enter ;;
+			5 ) verifydep;freepbx;enter ;;
 			0 ) notify;exit ;;
-		    * ) echo "Please enter 1, 2, 3, 4, 5, 6 or 0"
+		    * ) echo "Please enter 1, 2, 3, 4, 5 or 0"
 	    esac
 	done
 

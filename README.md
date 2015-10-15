@@ -45,11 +45,11 @@ This script will install the latest version of cPanel.
 
 ### FreePBX
 
-This script will install version 2.11 of FreePBX and Asterisk 11 from AsteriskNOW centos repository.
+This script will install FreePBX 12 and Asterisk 12 from AsteriskNOW repository.
 
 * Prepare server for installation
-* Install latest version from AsteriskNOW
-* Install FreePBX version 2.11 from the upstream website
+* Install Asterisk 12 from AsteriskNOW
+* Install FreePBX 12 from the upstream website
 * Basic configurations
 
 ### Scripts
