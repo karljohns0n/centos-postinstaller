@@ -211,7 +211,7 @@ if [ "$PHPVERSION" != "53" ] && [ "$PHPVERSION" != "54" ] && [ "$PHPVERSION" != 
 	PHPVERSION="56"
 fi
 
-read -p "Do you want to switch MySQL 5.6 for MariaDB 10? (N/y): " -e MariaDB_INPUT
+read -p "Do you want to switch MySQL 5.6 for MariaDB 10.0? (N/y): " -e MariaDB_INPUT
 if [ "$MariaDB_INPUT" == "y" ] || [ "$MariaDB_INPUT" == "Y" ]; then
 	MariaDB=true
 fi
@@ -242,7 +242,7 @@ elif [ $PHPVERSION == "54" ]; then
 	{
 		yum install -y $URL/repos/ius-release-6.noarch.rpm
 		yum install -y yum-plugin-replace
-		yum install -y php54 php54-cli php54-common php54-devel php54-enchant php54-gd php54-imap php54-ioncube-loader php54-mbstring php54-mcrypt php54-mysql php54-pdo php54-pear php54-pecl-memcache php54-pecl-memcached php54-soap php54-tidy php54-xml php54-xmlrpc
+		yum --enablerepo ius-archive install -y php54 php54-cli php54-common php54-devel php54-enchant php54-gd php54-imap php54-ioncube-loader php54-mbstring php54-mcrypt php54-mysql php54-pdo php54-pear php54-pecl-memcache php54-pecl-memcached php54-soap php54-tidy php54-xml php54-xmlrpc
 	} 3>&1 4>&2 >>$BUILDLOG 2>&1
 elif [ $PHPVERSION == "55" ]; then
 	{
@@ -258,7 +258,7 @@ elif [ $PHPVERSION == "56" ]; then
 	} 3>&1 4>&2 >>$BUILDLOG 2>&1
 fi
 
-### MariaDB 10 or MySQL 5.6 ###
+### MariaDB 10.0 or MySQL 5.6 ###
 
 if [[ "$MariaDB" == true ]]; then
 	echo "[mariadb]
@@ -266,7 +266,7 @@ name = MariaDB
 baseurl = http://yum.mariadb.org/10.0/centos6-amd64
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1" > /etc/yum.repos.d/MariaDB.repo
-	progress 20 "Installing MariaDB 10...                            "
+	progress 20 "Installing MariaDB 10.0...                            "
 	yum install -y MariaDB-server MariaDB-client 3>&1 4>&2 >>$BUILDLOG 2>&1
 else
 	progress 20 "Installing MySQL 5.6...                             "
@@ -286,7 +286,7 @@ yum install -y nginx-more httpd-devel 3>&1 4>&2 >>$BUILDLOG 2>&1
 if [ $PHPVERSION == "53" ]; then
 	yum --enablerepo ius-archive install -y php53u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 elif [ $PHPVERSION == "54" ]; then
-	yum install -y php54-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
+	yum --enablerepo ius-archive install -y php54-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 elif [ $PHPVERSION == "55" ]; then
 	yum install -y php55u-fpm 3>&1 4>&2 >>$BUILDLOG 2>&1
 elif [ $PHPVERSION == "56" ]; then
@@ -316,6 +316,7 @@ progress 60 "Configuring and optimizing services...               "
 
 wget -O /etc/nginx/conf.d/vhosts/"$DOMAIN".conf $URL/config/lemp-nginx-c6.conf 3>&1 4>&2 >>$BUILDLOG 2>&1
 sed -i "s/replace.me/$DOMAIN/g" /etc/nginx/conf.d/vhosts/"$DOMAIN".conf
+sed -i "s/127\.0\.0\.1/$IP/g" /etc/nginx/conf.d/vhosts/"$DOMAIN".conf
 echo "<?php echo 'Current PHP version: ' . phpversion(); ?>" > /home/www/"$DOMAIN"/public_html/index.php
 if [ "$PHPVERSION" -ge "55" ]; then
 	wget -O /usr/share/nginx/html/opcache.php https://raw.githubusercontent.com/amnuts/opcache-gui/master/index.php 3>&1 4>&2 >>$BUILDLOG 2>&1
@@ -355,7 +356,7 @@ sed -i "s/\#include\ conf.d\/custom\/aerisnetwork\-ips/include\ conf.d\/custom\/
 echo "monit" > /usr/share/nginx/html/monit.html
 sed -i "s/use\ address\ localhost/\#use\ address\ localhost/g" /etc/monitrc
 sed -i "s/allow\ monit\:monit/allow\ monit\:$MONITPASS/g" /etc/monitrc
-wget -O /etc/monit.d/services $URL/config/lemp-monit-c6 3>&1 4>&2 >>$BUILDLOG 2>&1
+wget -O /etc/monit.d/services.conf $URL/config/lemp-monit-c6 3>&1 4>&2 >>$BUILDLOG 2>&1
 if [[ "$MariaDB" == true ]]; then
 	sed -i "s/init.d\/mysqld/init.d\/mysql/g" /etc/monit.d/services
 	sed -i "s/\/var\/run\/mysqld\/mysqld.pid/\/var\/lib\/mysql\/$(hostname).pid/g" /etc/monit.d/services
@@ -364,11 +365,12 @@ fi
 ### PMA ###
 
 {
-	wget -O /home/www/"$DOMAIN"/subdomains/phpmyadmin.tar.gz https://files.phpmyadmin.net/phpMyAdmin/4.4.13.1/phpMyAdmin-4.4.13.1-english.tar.gz
+	wget -O /home/www/"$DOMAIN"/subdomains/phpmyadmin.tar.gz https://files.phpmyadmin.net/phpMyAdmin/4.5.5.1/phpMyAdmin-4.5.5.1-english.tar.gz
 	tar -zxf /home/www/"$DOMAIN"/subdomains/phpmyadmin.tar.gz -C /home/www/"$DOMAIN"/subdomains
 	rm -f /home/www/"$DOMAIN"/subdomains/phpmyadmin.tar.gz
 	mv /home/www/"$DOMAIN"/subdomains/phpMyAdmin* /home/www/"$DOMAIN"/subdomains/pma
 } 3>&1 4>&2 >>$BUILDLOG 2>&1
+
 echo "<?php
 \$cfg['blowfish_secret'] = '$PMA';
 \$cfg['Servers'][1]['auth_type'] = 'cookie';
@@ -479,6 +481,65 @@ echo -e "\n*****************************************************************\n"
 
 }
 
+################################################################################################
+############################### Option 4 Zimbra Startup #######################################
+
+function zimbra {
+
+echo -e "\n*****************************************************************"
+echo -e "Zimbra preparation starting"
+echo -e "*****************************************************************\n"
+
+echo "Installing dependencies.."
+{
+	yum install -y bind-utils curl compat-db compat-libstdc++-33 expat expat-devel fetchmail file glibc glibc-devel gmp gmp-devel jwhois libidn libidn-devel libtool-ltdl libtool-ltdl-devel libstdc++-devel nc pcre pcre-devel perl python screen sudo sysstat tcsh telnet vixie-cron which zlib-devel
+	chkconfig --level 123456 postfix off
+	chkconfig --level 123456 sendmail off
+	service postfix stop
+	service sendmail stop
+} 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+echo "Downloading latest Zimbra Open Source Edition.."
+wget -O /root/zcs.tar.gz https://files.zimbra.com/downloads/8.6.0_GA/zcs-8.6.0_GA_1153.RHEL6_64.20141215151155.tgz 3>&1 4>&2 >>$BUILDLOG 2>&1
+tar -zxf /root/zcs.tar.gz 3>&1 4>&2 >>$BUILDLOG 2>&1
+pushd /root/zcs* 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+echo "Installing Zimbra.."
+echo -e "\nAccept license, choose your modules and set admin password."
+./install.sh --platform-override
+
+echo -e "\nZimbra installed, doing some configuration changes.."
+{
+	su - zimbra -c 'zmprov mcf zimbraAmavisMaxServers 1 zimbraClamAVMaxThreads 1'
+	su - zimbra -c 'zmprov mcf zimbraLastLogonTimestampFrequency 1d'
+	su - zimbra -c 'zmlocalconfig -e mailboxd_java_heap_new_size_percent=18'
+	su - zimbra -c 'zmlocalconfig -e mysql_memory_percent=18'
+	su - zimbra -c 'zmprov ms $(hostname) zimbraRemoteManagementPort 2222'
+	su - zimbra -c 'zmprov mcf zimbraMtaRestriction reject_non_fqdn_sender \
+	zimbraMtaRestriction reject_unknown_reverse_client_hostname \
+	zimbraMtaRestriction reject_unknown_sender_domain \
+	zimbraMtaRestriction "reject_rbl_client zen.spamhaus.org" \
+	zimbraMtaRestriction "reject_rbl_client bl.spamcop.net" \
+	zimbraMtaRestriction "reject_rbl_client bl.spameatingmonkey.net" \
+	zimbraMtaRestriction "reject_rbl_client psbl.surriel.com" \
+	zimbraMtaRestriction "reject_rhsbl_client dbl.spamhaus.org" \
+	zimbraMtaRestriction "reject_rhsbl_client rhsbl.sorbs.net" \
+	zimbraMtaRestriction "reject_rhsbl_client multi.surbl.org" \
+	zimbraMtaRestriction "reject_rhsbl_client urired.spameatingmonkey.net" \
+	zimbraMtaRestriction "reject_rhsbl_client fresh15.spameatingmonkey.net" \
+	zimbraMtaRestriction "reject_rhsbl_reverse_client dbl.spamhaus.org" \
+	zimbraMtaRestriction "reject_rhsbl_sender dbl.spamhaus.org" \
+	zimbraMtaRestriction "reject_rhsbl_sender rhsbl.sorbs.net" \
+	zimbraMtaRestriction "reject_rhsbl_sender multi.surbl.org" \
+	zimbraMtaRestriction "reject_rhsbl_sender urired.spameatingmonkey.net" \
+	zimbraMtaRestriction "reject_rhsbl_sender fresh15.spameatingmonkey.net"'
+	pushd /root
+} 3>&1 4>&2 >>$BUILDLOG 2>&1
+
+echo -e "\nYou should now be able to login with admin@$(hostname) at"
+echo -e "https://$(hostname):7071/zimbraAdmin/ \n"
+
+}
 
 ################################################################################################
 ############################### Option 5 FreePBX Startup #######################################
@@ -811,6 +872,7 @@ echo -e "for NEW installation only, hit ctrl-c to cancel."
 echo -e "*****************************************************************\n"
 
 progress 0 "Detecting virtualization and IP...            "
+progress 10 "Detecting virtualization and IP...            "
 yum install -y virt-what 3>&1 4>&2 >>$BUILDLOG 2>&1
 progress 90 "Detecting virtualization and IP...            "
 VIRT=$(virt-what |head -n1)
@@ -855,6 +917,7 @@ if [[ $(awk '{print substr($0,0,16)}' /etc/redhat-release) == "CentOS release 6"
 			1 ) cleanup;enter ;;
 			2 ) verifydep;cpanel;enter ;;
 		    3 ) verifydep;lemp;enter ;;
+			4 ) verifydep;zimbra;enter ;;
 			5 ) verifydep;freepbx;enter ;;
 			0 ) notify;exit ;;
 		    * ) echo "Please enter 1, 2, 3, 4, 5 or 0"

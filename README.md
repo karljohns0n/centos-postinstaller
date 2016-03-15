@@ -23,13 +23,13 @@ This script assume that we are on a brand new server, it's really important as s
 
 ### LEMP
 
-This script will install Nginx with PageSpeed and will let you choose between PHP 5.3/5.4/5.5/5.6. It will also let you install MySQL 5.6 or MariaDB 10.
+This script will install Nginx with PageSpeed and will let you choose between PHP 5.3/5.4/5.5/5.6. It will also let you install MySQL 5.6 or MariaDB 10.0.
 
 * Nginx-more (latest Nginx, OpenSSL, PageSpeed, ModSecurity, More-Headers, Cache Purge, etc..)
 * PHP 5.3, 5.4, 5.5, 5.6
 * PHP-FPM, OPcache & Memcached
 * PHP sessions in Memcached
-* MySQL 5.6 or MariaDB 10
+* MySQL 5.6 or MariaDB 10.0
 * VsFTPd with virtual users
 * PhpMyAdmin
 * Monit
@@ -42,6 +42,14 @@ This script will install the latest version of cPanel.
 * Disable optimizefs
 * Optimize MySQL
 * Add useful aliases
+
+### Zimbra
+
+This script will install latest Zimbra Open Source Edition.
+
+* Prepare server for installation
+* Install Zimbra
+* Few optimizations
 
 ### FreePBX
 
@@ -62,6 +70,4 @@ This script will install FreePBX 12 and Asterisk 12 from AsteriskNOW repository.
 ## Todo
 
 * Post-installer for CentOS 7
-* Zimbra build
-* LEMH build (HHVM!)
 * Varnish setup for cPanel
