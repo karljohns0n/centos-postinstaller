@@ -758,7 +758,7 @@ sed -i '/enabled\=1/a exclude\=nginx*,monit*' /etc/yum.repos.d/epel.repo
 
 progress 45 "Installing useful packages...                   "
 
-yum install -y bc bind-utils gcc gcc-c++ file git htop iftop iotop hdparm make mtr mutt nc nethogs openssh-clients pbzip2 perl pigz postfix pv rsync screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
+yum install -y bc bind-utils cyrus-sasl-plain gcc gcc-c++ file git htop iftop iotop hdparm make mtr mutt nc nethogs openssh-clients pbzip2 perl pigz postfix pv rsync screen strace sysbench 3>&1 4>&2 >>$BUILDLOG 2>&1
 
 
 progress 50 "Postfix setup...                                "

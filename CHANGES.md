@@ -6,6 +6,8 @@
 - Zimbra for CentOS 6
 - Switch LEMP PHP 5.4 to archive repo and update phpMyAdmin
 - Few enhancements in nginx and monit configurations
+- Bump RapidSSL Ca Bundle to 2016-03
+- Add SSL dependency for postfix
 
 ## 2.0.0 - 2015/08/19
 
